@@ -22,7 +22,8 @@
 #include <cstdint>
 #include <cstddef>
 #include "platform/mbed_assert.h"
-#include "platform/mbed_chrono.h"
+#include <chrono>
+
 
 namespace ble {
 

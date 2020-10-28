@@ -28,9 +28,7 @@
 namespace ble {
 
 #if !defined(DOXYGEN_ONLY)
-namespace impl {
 class GattServer;
-}
 #endif // !defined(DOXYGEN_ONLY)
 }
 
@@ -1787,7 +1785,7 @@ public:
 
 private:
 
-    friend ble::impl::GattServer;
+    friend ble::GattServer;
 
 #if !defined(DOXYGEN_ONLY)
     /**

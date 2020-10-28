@@ -37,7 +37,6 @@ add_library(ble-stubs
         tests/stubs/include/ble/BLE.h
         tests/stubs/include/ble/GattServer.h
 
-        tests/stubs/include/ble/common/BLERoles.h
         tests/stubs/include/ble/common/BLETypes.h
         tests/stubs/include/ble/common/Bounded.h
         tests/stubs/include/ble/common/CallChainOfFunctionPointersWithContext.h
@@ -65,7 +64,7 @@ add_library(ble-stubs
         tests/stubs/source/dummy_stub.cpp
 )
 
-target_include_directories(ble-stubs PUBLIC stubs/include)
+target_include_directories(ble-stubs PUBLIC tests/stubs/include)
 
 set(BLE_SERVICES_SOURCES
         include/mbed-ble-services/dummy_service.h
