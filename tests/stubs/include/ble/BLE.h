@@ -19,13 +19,11 @@
 #ifndef MBED_BLE_H__
 #define MBED_BLE_H__
 
-#include "platform/mbed_error.h"
 #include "platform/mbed_assert.h"
 #include "platform/mbed_toolchain.h"
 
 #include "ble/GattServer.h"
 
-#include "ble/common/BLERoles.h"
 #include "ble/common/BLETypes.h"
 #include "ble/common/blecommon.h"
 #include "ble/common/FunctionPointerWithContext.h"
@@ -53,6 +51,18 @@ public:
      * A const alternative to gattServer().
      */
     const ble::GattServer &gattServer() const;
+
+    /**
+     * Set the gatt server that is returned by gattServer(). The caller manages
+     * the lifetime of the instance provided.
+     */
+    void setGattServer(ble::GattServer *server);
+
+
+private:
+    BLE();
+
+    ble::GattServer *_gatt_server = nullptr;
 };
 
 }

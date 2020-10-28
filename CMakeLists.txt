@@ -61,8 +61,7 @@ add_library(ble-stubs
         tests/stubs/include/platform/mbed_preprocessor.h
         tests/stubs/include/platform/mbed_toolchain.h
 
-        tests/stubs/source/dummy_stub.cpp
-)
+        tests/stubs/source/BLE.cpp tests/stubs/source/GattServer.cpp)
 
 target_include_directories(ble-stubs PUBLIC tests/stubs/include)
 

@@ -1,1 +1,0 @@
-// Dummy stub to verify CMake compilation works.

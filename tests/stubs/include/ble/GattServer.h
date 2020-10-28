@@ -20,6 +20,9 @@
 #ifndef MBED_GATT_SERVER_H__
 #define MBED_GATT_SERVER_H__
 
+#include <vector>
+#include <memory>
+
 #include "platform/mbed_toolchain.h"
 
 #include "ble/common/CallChainOfFunctionPointersWithContext.h"
@@ -31,74 +34,6 @@
 
 namespace ble {
 
-#if !defined(DOXYGEN_ONLY)
-namespace impl {
-class GattServer;
-}
-#endif // !defined(DOXYGEN_ONLY)
-
-
-/**
- * @addtogroup ble
- * @{
- * @addtogroup gatt
- * @{
- * @addtogroup server
- * @{
- */
-
-/**
- * Construct and operates a GATT server.
- *
- * A Gatt server is a collection of GattService; these services contain
- * characteristics that a peer connected to the device may read or write.
- * These characteristics may also emit updates to subscribed clients when their
- * values change.
- *
- * @p Server Layout
- *
- * Application code can add a GattService object to the server with the help of
- * the function addService(). That function registers all the GattCharacteristic
- * enclosed in the service, as well as all the characteristics descriptors (see
- * GattAttribute) these characteristics contain. Service registration assigns
- * a unique handle to the various attributes being part of the service; this
- * handle should be used for subsequent read or write of these components.
- *
- * There are no primitives defined to remove a single service; however, a call to
- * the function reset() removes all services previously registered in the
- * GattServer.
- *
- * @p Characteristic and attributes access
- *
- * Values of the characteristic and the characteristic descriptor present in the
- * GattServer must be accessed through the handle assigned to them when the service
- * has been registered; the GattServer class offers several flavors of read()
- * and write() functions that retrieve or mutate an attribute value.
- *
- * Application code can query if a client has subscribed to a given
- * characteristic's value update by invoking the function areUpdatesEnabled().
- *
- * @p Events
- *
- * The GattServer allows application code to register several event handlers that
- * can be used to monitor client and server activities:
- *   - onDataSent(): Register an event handler that is called when a
- *     characteristic value update has been sent to a client.
- *   - onDataWriten(): Register an event handler that is called when a
- *     client has written an attribute of the server.
- *   - onDataRead(): Register an event handler that is called when a
- *     client has read an attribute of the server.
- *   - onUpdatesEnabled: Register an event handler that is called when a
- *     client subscribes to updates of a characteristic.
- *   - onUpdatesDisabled: Register an event handler that is called when a
- *     client unsubscribes from updates of a characteristic.
- *   - onConfimationReceived: Register an event handler that is called
- *     when a client acknowledges a characteristic value notification.
- *
- * @note The term characteristic value update is used to represent
- * Characteristic Value Notification and Characteristic Value Indication when
- * the nature of the server initiated is not relevant.
- */
 class GattServer {
 public:
     /**
@@ -208,6 +143,12 @@ public:
 
 
 public:
+
+    GattServer() = default;
+    GattServer(const GattServer&) = delete;
+    GattServer& operator=(const GattServer&) = delete;
+    virtual ~GattServer() = default;
+
     /**
      * Assign the event handler implementation that will be used by the
      * module to signal events back to the application.
@@ -221,6 +162,8 @@ public:
      * @see ChainableGattServerEventHandler
      */
     void setEventHandler(EventHandler *handler);
+
+    EventHandler *getEventHandler();
 
     /**
      * Add a service declaration to the local attribute server table.
@@ -246,7 +189,7 @@ public:
      *
      * @return BLE_ERROR_NONE if the service was successfully added.
      */
-    ble_error_t addService(GattService &service);
+    virtual ble_error_t addService(GattService &service);
 
     /**
      * Read the value of an attribute present in the local GATT server.
@@ -265,11 +208,11 @@ public:
      * must be used to read Client Characteristic Configuration Descriptor (CCCD)
      * because the value of this type of attribute depends on the connection.
      */
-    ble_error_t read(
+    virtual ble_error_t read(
         GattAttribute::Handle_t attributeHandle,
         uint8_t buffer[],
         uint16_t *lengthP
-    );
+    ) = 0;
 
     /**
      * Read the value of an attribute present in the local GATT server.
@@ -289,12 +232,12 @@ public:
      *
      * @return BLE_ERROR_NONE if a value was read successfully into the buffer.
      */
-    ble_error_t read(
+    virtual ble_error_t read(
         ble::connection_handle_t connectionHandle,
         GattAttribute::Handle_t attributeHandle,
         uint8_t *buffer,
         uint16_t *lengthP
-    );
+    ) = 0;
 
     /**
      * Update the value of an attribute present in the local GATT server.
@@ -311,12 +254,12 @@ public:
      * @return BLE_ERROR_NONE if the attribute value has been successfully
      * updated.
      */
-    ble_error_t write(
+    virtual ble_error_t write(
         GattAttribute::Handle_t attributeHandle,
         const uint8_t *value,
         uint16_t size,
         bool localOnly = false
-    );
+    ) = 0;
 
     /**
      * Update the value of an attribute present in the local GATT server.
@@ -339,13 +282,13 @@ public:
      * @return BLE_ERROR_NONE if the attribute value has been successfully
      * updated.
      */
-    ble_error_t write(
+    virtual ble_error_t write(
         ble::connection_handle_t connectionHandle,
         GattAttribute::Handle_t attributeHandle,
         const uint8_t *value,
         uint16_t size,
         bool localOnly = false
-    );
+    ) = 0;
 
     /**
      * Determine if one of the connected clients has subscribed to notifications
@@ -358,10 +301,10 @@ public:
      * @return BLE_ERROR_NONE if the connection and handle are found. False
      * otherwise.
      */
-    ble_error_t areUpdatesEnabled(
+    virtual ble_error_t areUpdatesEnabled(
         const GattCharacteristic &characteristic,
         bool *enabledP
-    );
+    ) = 0;
 
     /**
      * Determine if an identified client has subscribed to notifications or
@@ -376,11 +319,11 @@ public:
      * @return BLE_ERROR_NONE if the connection and handle are found. False
      * otherwise.
      */
-    ble_error_t areUpdatesEnabled(
+    virtual ble_error_t areUpdatesEnabled(
         ble::connection_handle_t connectionHandle,
         const GattCharacteristic &characteristic,
         bool *enabledP
-    );
+    ) = 0;
 
     /**
      * Indicate if the underlying stack emit events when an attribute is read by
@@ -391,17 +334,12 @@ public:
      *
      * @return true if onDataRead is supported; false otherwise.
      */
-    bool isOnDataReadAvailable() const;
-
-
-#if !defined(DOXYGEN_ONLY)
-    GattServer(impl::GattServer* impl) : impl(impl) {}
-    GattServer(const GattServer&) = delete;
-    GattServer& operator=(const GattServer&) = delete;
-#endif // !defined(DOXYGEN_ONLY)
+    virtual bool isOnDataReadAvailable() const = 0;
 
 private:
-    impl::GattServer *impl;
+    EventHandler *_handler = nullptr;
+    uint16_t _last_attribute = 0;
+    std::vector<std::unique_ptr<uint16_t>> _cccd_values;
 };
 
 /**
