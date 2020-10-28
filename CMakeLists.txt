@@ -130,9 +130,11 @@ endif ()
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(test_app
         tests/source/dummy_service_test.cpp
-)
+        tests/mocks/GattServerMock.h
+        tests/mocks/GattServerMock.cpp)
 
 include_directories(test_app ${CMAKE_SOURCE_DIR})
+include_directories(test_app tests)
 
 target_link_libraries(test_app gmock_main)
 target_link_libraries(test_app ble-services)
