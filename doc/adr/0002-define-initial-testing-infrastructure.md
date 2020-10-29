@@ -39,8 +39,7 @@ We propose to use Clang as it provides better messages in case of compilation fa
 ### Code coverage
 
 To ensure tests submitted cover sufficciently the code submitted we propose to use the 
-code coverage solution offered by the selected compiler (Clang). Services with less than 
-80% code coverage won't be accepted.  
+code coverage solution offered by the selected compiler (Clang).   
 
 ### Integration tests
 
@@ -59,4 +58,3 @@ Depending on results and code coverage, the submission will be rejected.
 
 The base of the test infrastructure should be created, it must be based on google test, 
 be compiled with clang run in Circle CI. 
-Maintainers should not merge PR with less than 80% code coverage. 
