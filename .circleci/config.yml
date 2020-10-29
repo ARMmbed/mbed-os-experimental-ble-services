@@ -1,0 +1,41 @@
+version: 2
+jobs:
+  build_test:
+    docker:
+      - image: mbedos/mbed-os-env:stable
+    working_directory: ~
+    steps:
+      - checkout:
+          path: mbed-os-experimental-ble-services
+      - run: |
+          cd mbed-os-experimental-ble-services
+          mkdir build
+          cd build
+          cmake ..
+          make
+      - persist_to_workspace:
+          root: /root/project
+          paths: mbed-os-experimental-ble-services
+
+  run_test:
+    docker:
+      - image: mbedos/mbed-os-env:stable
+    working_directory: ~
+    steps:
+      - attach_workspace:
+          at: /root/project
+      - run: |
+          cd mbed-os-experimental-ble-services
+          cd build
+          ./test_app --gtest_output=xml
+      - store_test_results:
+          path: mbed-os-experimental-ble-services/build/test_detail.xml
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - build_test
+    - run_test:
+        requires:
+          - build_test
