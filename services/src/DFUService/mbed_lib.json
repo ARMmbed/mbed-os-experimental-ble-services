@@ -1,0 +1,13 @@
+{
+    "name": "ble-dfu-service",
+    "config": {
+        "rx-buffer-size": {
+            "help": "Size of binary data stream receive buffer in bytes",
+            "value": 256
+        },
+        "max-slots": {
+            "help": "Maximum number of update slots that can be assigned corresponding BlockDevices",
+            "value": 3
+        }
+    }
+}
