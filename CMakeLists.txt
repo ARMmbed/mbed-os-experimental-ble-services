@@ -36,6 +36,7 @@ option(ENABLE_EXCEPTIONS "add exceptions flag")
 add_library(ble-stubs 
         tests/stubs/include/ble/BLE.h
         tests/stubs/include/ble/GattServer.h
+        tests/stubs/include/ble/Gap.h
 
         tests/stubs/include/ble/common/BLETypes.h
         tests/stubs/include/ble/common/Bounded.h
@@ -49,6 +50,8 @@ add_library(ble-stubs
         tests/stubs/include/ble/common/blecommon.h
 
         tests/stubs/include/ble/gap/Types.h
+        tests/stubs/include/ble/gap/Events.h
+        tests/stubs/include/ble/gap/ChainableGapEventHandler.h
 
         tests/stubs/include/ble/gatt/ChainableGattServerEventHandler.h
         tests/stubs/include/ble/gatt/GattAttribute.h
