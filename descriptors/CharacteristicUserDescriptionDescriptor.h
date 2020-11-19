@@ -35,10 +35,15 @@ class CharacteristicUserDescriptionDescriptor : public GattAttribute
 public:
 
     CharacteristicUserDescriptionDescriptor(const char* user_description) :
-        _user_description(user_description),
         GattAttribute((const UUID&) UUID(BLE_UUID_DESCRIPTOR_CHAR_USER_DESC),
-        (uint8_t*) user_description, strlen(user_description), strlen(user_description), false)
-    { }
+        (uint8_t*) user_description,
+        (user_description != nullptr) ? strlen(user_description) : 0,
+        (user_description != nullptr) ? strlen(user_description) : 0,
+        false),
+        _user_description(user_description)
+    {
+        this->allowWrite(false);
+    }
 
     const char* get_user_description() const {
         return _user_description;
