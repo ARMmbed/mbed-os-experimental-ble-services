@@ -30,7 +30,11 @@
 #include "platform/CircularBuffer.h"
 #include "platform/PlatformMutex.h"
 
+#include "events/EventQueue.h"
+
 #include "BlockDevice.h"
+
+#include "descriptors/CharacteristicUserDescriptionDescriptor.h"
 
 /**
  * Maximum length of data (in bytes) that the DFU service
@@ -45,10 +49,35 @@
 #endif
 
 /**
- * RX Buffer Sizes
+ * RX Buffer Size
+ * This should be at least 1.5X the maximum MTU you expect to accept
+ * Defaults to 2.5X maximum MTU
  */
 #ifndef MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE
-#define MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE 256
+#define MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE ((BLE_DFU_SERVICE_MAX_DATA_LEN << 1) +\
+                                                  (BLE_DFU_SERVICE_MAX_DATA_LEN >> 1))
+#endif
+
+/**
+ * RX Buffer Flow Control Pause Threshold
+ * This is the maximum number of bytes that can be placed into the RX buffer
+ * before the server automatically sets the flow control pause bit.
+ *
+ * By default this is 2X the maximum MTU
+ */
+#ifndef MBED_CONF_BLE_DFU_SERVICE_RX_FC_PAUSE_THRESHOLD
+#define MBED_CONF_BLE_DFU_SERVICE_RX_FC_PAUSE_THRESHOLD (BLE_DFU_SERVICE_MAX_DATA_LEN << 1)
+#endif
+
+/**
+ * RX Buffer Flow Control Unpause Threshold
+ * This is the maximum number of bytes that can be in the RX buffer
+ * before the server automatically clears the flow control pause bit.
+ *
+ * By default this is 1X the maximum MTU
+ */
+#ifndef MBED_CONF_BLE_DFU_SERVICE_RX_FC_UNPAUSE_THRESHOLD
+#define MBED_CONF_BLE_DFU_SERVICE_RX_FC_UNPAUSE_THRESHOLD BLE_DFU_SERVICE_MAX_DATA_LEN
 #endif
 
 /**
@@ -59,17 +88,28 @@
 #endif
 
 /**
+ * Bit flags
+ */
+#define DFU_CTRL_ENABLE_BIT         (1 << 0)
+#define DFU_CTRL_COMMIT_BIT         (1 << 1)
+#define DFU_CTRL_DELTA_MODE_EN_BIT  (1 << 2)
+#define DFU_CTRL_FC_PAUSE_BIT       (1 << 7)
+
+/* Bitmask of read-only bits in the DFU Ctrl bit set */
+#define DFU_CTRL_READONLY_BITS      (DFU_CTRL_FC_PAUSE_BIT)
+
+/**
  * UUIDs
  */
 namespace uuids {
 namespace DFUService {
 
-    const UUID BaseUUID("53880000-65fd-4651-ba8e-91527f06c887");
-    const UUID SlotUUID("53880001-65fd-4651-ba8e-91527f06c887");
-    const UUID OffsetUUID("53880002-65fd-4651-ba8e-91527f06c887");
-    const UUID BinaryStreamUUID("53880003-65fd-4651-ba8e-91527f06c887");
-    const UUID ControlUUID("53880004-65fd-4651-ba8e-91527f06c887");
-    const UUID StatusUUID("53880005-65fd-4651-ba8e-91527f06c887");
+    extern const char BaseUUID[];
+    extern const char SlotUUID[];
+    extern const char OffsetUUID[];
+    extern const char BinaryStreamUUID[];
+    extern const char ControlUUID[];
+    extern const char StatusUUID[];
 
 }}
 
@@ -99,6 +139,8 @@ namespace DFUService {
  * - Status characteristic
  *      - Notify/Indicate/Read
  *      - Error code (eg: update too large, invalid update (after reboot), etc)
+ *      - If highest bit is set it indicates a sync lost notification
+ *      ---> The 7LSB will then indicate the expected sequence ID that did not match. The client should restart transmission from this sequence ID.
  * - Selected Slot
  *      - Write (w/ response)
  *      - Write is only allowed if slot has valid block device
@@ -133,9 +175,26 @@ public:
      * defined in the GattAuthCallbackReply_t enum.
      */
     enum ApplicationError_t {
-
+        AUTH_CALLBACK_REPLY_ATTERR_APP_NOT_ALLOWED      = 0x019C, /** Response when client attempts to enable DFU when disallowed */
+        AUTH_CALLBACK_REPLY_ATTERR_APP_READONLY         = 0x019D, /** A write request was made that modifies data that is read-only */
         AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY             = 0x019E, /** DFUService is busy (eg: flush in progress) */
         AUTH_CALLBACK_REPLY_ATTERR_APP_INVALID_SLOT_NUM = 0x019F, /** Client requested invalid slot index */
+    };
+
+    /**
+     * DFU-specific status codes
+     */
+    enum StatusCode_t{
+        DFU_STATE_IDLE                      = 0x00, /** Neutral state */
+        DFU_STATE_UPDATE_SUCCESSFUL         = 0x01,
+        DFU_STATE_UNKNOWN_FAILURE           = 0x02,
+        DFU_STATE_VALIDATION_FAILURE        = 0x03, /** Validation/Authentication of update candidate failed */
+        DFU_STATE_INSTALLATION_FAILURE      = 0x04, /** Installation of update candidate failed */
+        DFU_STATE_APPLICATION_OVERSIZE      = 0x05, /** Update candidate exceeded memory bounds */
+        DFU_STATE_FLASH_ERROR               = 0x06, /** Flash error */
+        DFU_STATE_HARDWARE_ERROR            = 0x07, /** Hardware failure */
+
+        DFU_STATE_SYNC_LOSS_BIT             = 0x80, /** If the MSbit is set in the status, the 7LSB indicate the sequence ID at which sync was lost */
 
     };
 
@@ -180,10 +239,26 @@ public:
 public:
 
     /**
+     * Protip: as a general rule, when using delegated constructors, you should
+     * fully specify (ie: initialize all members in the initializer list) the version
+     * of the constructor that takes the largest number of arguments.
+     */
+
+    /**
      * Instantiate a DFUService instance
      * @param[in] bd BlockDevice to use for storing update candidates in slot 0
+     * @param[in] queue EventQueue to process memory writes on
+     * @param[in] fw_rev Optional, Current firmware revision string
+     * @param[in] dev_desc Optional, Description of the device that this firmware is executed on
+     *
+     * @note The optional parameters MUST be supplied if your GattServer has multiple DFUService
+     * instances available. They are optional if your GattServer has only one DFUService instance.
+     * Each DFUService must implement a firmware revision characteristic with an
+     * associated characteristic user description descriptor that uniquely identifies
+     * the device that executes the firmware targeted by the DFUService.
      */
-    DFUService(mbed::BlockDevice *bd);
+    DFUService(mbed::BlockDevice *bd, events::EventQueue &queue,
+            const char *fw_rev = nullptr, const char *dev_desc = nullptr);
 
     virtual ~DFUService();
 
@@ -192,7 +267,7 @@ public:
     }
 
     bool is_dfu_enabled() const {
-        // TODO return _dfu_contrl & DFU_ENABLED_BIT
+        return (_dfu_control & DFU_CTRL_ENABLE_BIT);
     }
 
     void start(BLE &ble_interface);
@@ -226,7 +301,84 @@ public:
 
 protected:
 
-    void set_status();
+    /**
+     * Initialize and erase the selected flash slot
+     *
+     * @note This function may run for several seconds while erasing the currently
+     * selected slot, depending on the size of the slot and flash speed.
+     */
+    void init_selected_slot(void);
+
+    /**
+     * Internal function to process buffered binary serial data
+     */
+    void process_buffer(void);
+
+    /**
+     * Schedule a serialized call to process_buffer on the event queue.
+     *
+     * @note this function has no effect if a write has already been scheduled
+     */
+    void schedule_write(void) {
+        if(!_scheduled_write) {
+            _scheduled_write = _queue.call(
+                    mbed::callback(this, &DFUService::process_buffer));
+        }
+    }
+
+    /**
+     * Set the status of the DFUService and notify any subscribed peers
+     */
+    void set_status(uint8_t status);
+
+    /**
+     * Set the DFU control characteristic and notify any subscribedd peers
+     */
+    void set_dfu_ctrl(uint8_t ctrl);
+
+    /**
+     * Sets the flow control pause bit and notifies any subscribed peers
+     *
+     * @note This will not have any effect if the bit is already set
+     */
+    inline void set_fc_bit(void) {
+        mbed::ScopedLock<PlatformMutex> lock(_mutex);
+        if(!(_dfu_control & DFU_CTRL_FC_PAUSE_BIT)) {
+            set_dfu_ctrl(_dfu_control | DFU_CTRL_FC_PAUSE_BIT);
+        }
+    }
+
+    /**
+     * Clears the flow control pause bit and notifies any subscribed peers
+     *
+     * @note This will not have any effect if the bit is already cleared
+     */
+    inline void clear_fc_bit(void) {
+        mbed::ScopedLock<PlatformMutex> lock(_mutex);
+        if(_dfu_control & DFU_CTRL_FC_PAUSE_BIT) {
+            set_dfu_ctrl(_dfu_control & ~(DFU_CTRL_FC_PAUSE_BIT));
+        }
+    }
+
+    /**
+     * Initiates a binary data stream buffer flush and sets the flow control bit
+     */
+    inline void initiate_flush(void) {
+        mbed::ScopedLock<PlatformMutex> lock(_mutex);
+        /* Initiate a flush and set the FC pause bit */
+        _flush_bin_buf = true;
+        set_fc_bit();
+        schedule_write();
+    }
+
+    /**
+     * Completes a binary data stream buffer flush and clears the flow control bit
+     */
+    void flush_complete(void) {
+        mbed::ScopedLock<PlatformMutex> lock(_mutex);
+        _flush_bin_buf = false;
+        clear_fc_bit();
+    }
 
     /** GattServer::EventHandler overrides */
     void onDataWritten(const GattWriteCallbackParams &params) override;
@@ -263,21 +415,31 @@ protected:
     /** Update status */
     uint8_t _status = 0;
 
+    /** Optional firmware revision and description strings */
+    const char *_fw_rev_str;
+
+    /** Optional firmware characteristic user description descriptor */
+    CharacteristicUserDescriptionDescriptor _fw_cudd;
+
+    /** GattCharacteristic constructor requires a list of pointers to descriptors... */
+    GattAttribute *_fw_descs[1] = { (GattAttribute *) &_fw_cudd };
+
     /** Gatt Characteristics */
     GattCharacteristic _slot_char;
     GattCharacteristic _offset_char;
     GattCharacteristic _rx_char;
     GattCharacteristic _dfu_ctrl_char;
     GattCharacteristic _status_char;
+    GattCharacteristic _firmware_rev_char;
 
-    GattCharacteristic* _characteristics[5];
+    GattCharacteristic *_characteristics[6];
 
     GattService _dfu_service;
 
-    GattServer* _server;
+    GattServer *_server;
 
     /** Slot BlockDevices */
-    mbed::BlockDevice *_slot_bds[MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS] = { 0 };
+    mbed::BlockDevice *_slot_bds[MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS];
 
     /** Application callbacks */
     mbed::Callback<GattAuthCallbackReply_t(ControlChange&)> _ctrl_req_cb = nullptr;
@@ -291,6 +453,14 @@ protected:
 
     /** Mutex */
     PlatformMutex _mutex;
+
+    events::EventQueue &_queue;
+
+    /** Queued event ID for scheduling flash writes */
+    uint32_t _scheduled_write = 0;
+
+    /** Sequence ID for synchronization with client */
+    uint8_t _seq_id = 0;
 
 };
 
