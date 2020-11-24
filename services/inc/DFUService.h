@@ -239,12 +239,6 @@ public:
 public:
 
     /**
-     * Protip: as a general rule, when using delegated constructors, you should
-     * fully specify (ie: initialize all members in the initializer list) the version
-     * of the constructor that takes the largest number of arguments.
-     */
-
-    /**
      * Instantiate a DFUService instance
      * @param[in] bd BlockDevice to use for storing update candidates in slot 0
      * @param[in] queue EventQueue to process memory writes on
@@ -382,6 +376,10 @@ protected:
 
     /** GattServer::EventHandler overrides */
     void onDataWritten(const GattWriteCallbackParams &params) override;
+
+    void onUpdatesEnabled(const GattUpdatesEnabledCallbackParams &params) override;
+
+    void onUpdatesDisabled(const GattUpdatesDisabledCallbackParams &params) override;
 
     /** Gap::EventHandler overrides */
     void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override;
