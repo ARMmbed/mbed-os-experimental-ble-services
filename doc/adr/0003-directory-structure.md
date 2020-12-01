@@ -1,4 +1,4 @@
-# 3. Define initial testing infrastructure
+# 3. Define directory structure
 
 Date: 2020-12-01
 
