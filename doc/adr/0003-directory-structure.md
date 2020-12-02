@@ -19,9 +19,9 @@ Each service will contain at least an include folder and a mbed_lib.json.
 An example service called `example` would look like this:
 
 ```
-services/ble-service-example/include/example.h
-services/ble-service-example/source/example.cpp
-services/ble-service-example/mbed_lib.json
+services/example/include/ble-service-example/example.h
+services/example/source/example.cpp
+services/example/mbed_lib.json
 ```
 
 and the mbed_lib.json would contain at least:
