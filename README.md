@@ -23,13 +23,17 @@ Call `mbed deploy`. This will check out this repository into your project.
 
 To use a particular service you will need to now add the library that contains it into your application.
 
-Inside your `mbed_app.json` of your application add a new `requires` section (if you haven't got one already).
+Inside your `mbed_app.json` you need to override the `requires` section for your platform.
 Add the name of the library containing the service.
 
 For example, if you want to use the DFU service, add this to your `mbed_app.json`: 
 
 ```
-    "requires": ["ble-service-DFU"],
+    "target_overrides": {
+        "*": {
+            "target.requires": [ "ble-service-DFU" ]
+        },
+    }
 ```
 
 ### License and contributions
