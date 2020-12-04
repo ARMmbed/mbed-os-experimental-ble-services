@@ -27,12 +27,6 @@
 #define MBED_CONF_BLE_DFU_SERVICE_TRACE_ENABLE 0
 #endif
 
-#if MBED_CONF_BLE_DFU_SERVICE_TRACE_ENABLE || 1
-#define TRACE_IF(x) do { x; } while(0);
-#else
-#define TRACE_IF(x)
-#endif
-
 #if BLE_FEATURE_GATT_SERVER
 
 #include "DFUService.h"
@@ -156,34 +150,48 @@ void DFUService::onDataWritten(const GattWriteCallbackParams &params) {
 
 void DFUService::onUpdatesEnabled(const GattUpdatesEnabledCallbackParams &params) {
     if(params.attHandle == _dfu_ctrl_char.getValueHandle()) {
-        TRACE_IF(tr_debug("Updates enabled for control characteristic"));
+        tr_debug("Updates enabled for control characteristic");
     } else if(params.attHandle == _status_char.getValueHandle()) {
-        TRACE_IF(tr_debug("Updates enabled for status characteristic"))
+        tr_debug("Updates enabled for status characteristic");
     }
 }
 
 void DFUService::onUpdatesDisabled(const GattUpdatesDisabledCallbackParams &params) {
     if(params.attHandle == _dfu_ctrl_char.getValueHandle()) {
-        TRACE_IF(tr_debug("Updates disabled for control characteristic"));
+        tr_debug("Updates disabled for control characteristic");
     } else if(params.attHandle == _status_char.getValueHandle()) {
-        TRACE_IF(tr_debug("Updates disabled for status characteristic"))
+        tr_debug("Updates disabled for status characteristic");
     }
 }
 
 
 void DFUService::set_status(uint8_t status) {
-    TRACE_IF(tr_debug("notifying status: %d", status));
+    tr_debug("notifying status: %d", status);
     _server->write(_status_char.getValueHandle(), &status, 1, false);
 }
 
 void DFUService::set_dfu_ctrl(uint8_t bits) {
-    TRACE_IF(tr_debug("notifying ctrl: %d", bits));
+    tr_debug("notifying ctrl: %d", bits);
     _server->write(_dfu_ctrl_char.getValueHandle(), &bits, 1, false);
 }
 
 void DFUService::onDisconnectionComplete(
         const ble::DisconnectionCompleteEvent &event) {
-    // TODO determine disconnection behavior in various states
+
+    /** Clear the binary stream buffer */
+    uint8_t data;
+    for(int i = 0; i < _bin_stream_buf.size(); i++) {
+        _bin_stream_buf.pop(data);
+    }
+
+    /** Reset state */
+    _selected_slot = 0;
+    _current_offset = 0;
+    _dfu_control = 0;
+    _status = 0;
+    _flush_bin_buf = false;
+    _scheduled_write = 0;
+    _seq_id = 0;
 }
 
 void DFUService::on_slot_write_request(GattWriteAuthCallbackParams *params) {
@@ -191,16 +199,16 @@ void DFUService::on_slot_write_request(GattWriteAuthCallbackParams *params) {
     uint8_t desired_slot = *params->data;
     if(!(desired_slot < MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS) ||
        (_slot_bds[desired_slot] == nullptr)) {
-        TRACE_IF(tr_debug("slot write request: rejected (invalid)"));
+        tr_debug("slot write request: rejected (invalid)");
         params->authorizationReply = (GattAuthCallbackReply_t) AUTH_CALLBACK_REPLY_ATTERR_APP_INVALID_SLOT_NUM;
     } else
     if(!_bin_stream_buf.empty() || _flush_bin_buf) {
-        TRACE_IF(tr_debug("slot write request: rejected (busy)"));
+        tr_debug("slot write request: rejected (busy)");
         /* Reject slot write request and initiate a flush of the binary stream buffer */
         params->authorizationReply = (GattAuthCallbackReply_t) AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY;
         initiate_flush();
     } else {
-        TRACE_IF(tr_debug("slot write request: accepted"));
+        tr_debug("slot write request: accepted");
         params->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 }
@@ -208,7 +216,7 @@ void DFUService::on_slot_write_request(GattWriteAuthCallbackParams *params) {
 void DFUService::on_slot_written(uint8_t new_slot) {
     /* Ignore if selecting the same slot */
     if(_selected_slot != new_slot) {
-        TRACE_IF(tr_debug("slot written: %d", new_slot));
+        tr_debug("slot written: %d", new_slot);
         if(_slot_bds[new_slot] != nullptr) {
             mbed::ScopedLock<PlatformMutex> lock(_mutex);
             _slot_bds[_selected_slot]->deinit();
@@ -221,18 +229,18 @@ void DFUService::on_slot_written(uint8_t new_slot) {
 
 void DFUService::on_offset_write_request(GattWriteAuthCallbackParams *params) {
     if(!_bin_stream_buf.empty() || _flush_bin_buf) {
-        TRACE_IF(tr_debug("offset write request: rejected (busy)"));
+        tr_debug("offset write request: rejected (busy)");
         /* Reject offset write request and initiate a flush of the binary stream buffer */
         params->authorizationReply = (GattAuthCallbackReply_t) AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY;
         initiate_flush();
     } else {
-        TRACE_IF(tr_debug("offset write request: accepted"));
+        tr_debug("offset write request: accepted");
         params->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 }
 
 void DFUService::on_offset_written(uint32_t new_offset) {
-    TRACE_IF(tr_debug("offset written: %lu", new_offset));
+    tr_debug("offset written: %lu", new_offset);
     mbed::ScopedLock<PlatformMutex> lock(_mutex);
     _current_offset = new_offset;
 }
@@ -240,11 +248,11 @@ void DFUService::on_offset_written(uint32_t new_offset) {
 void DFUService::on_bds_written(mbed::Span<const uint8_t> data) {
 
     uint8_t seq_id = *data.data();
-    TRACE_IF(tr_debug("bds written, sequence num: %d, %i bytes in payload", seq_id, data.size()-1));
+    tr_debug("bds written, sequence num: %d, %i bytes in payload", seq_id, data.size()-1);
 
     /* Ignore 0-length writes */
     if((data.size() - 1) == 0) {
-        TRACE_IF(tr_warn("zero-length packet written, ignoring"));
+        tr_warn("zero-length packet written, ignoring");
         return;
     }
 
@@ -263,7 +271,7 @@ void DFUService::on_bds_written(mbed::Span<const uint8_t> data) {
             schedule_write();
         } else {
             /* Otherwise, notify the client that the expected sequence ID did not match using the status characteristic */
-            TRACE_IF(tr_warn("sequence number does not match; expected: %d, actual: %d", _seq_id, seq_id));
+            tr_warn("sequence number does not match; expected: %d, actual: %d", _seq_id, seq_id);
             set_status(DFU_STATE_SYNC_LOSS_BIT | _seq_id);
         }
     }
@@ -276,7 +284,7 @@ void DFUService::on_dfu_ctrl_write_request(
 
     if(change.get_changed_bits() & DFU_CTRL_READONLY_BITS) {
         /* Reject writes that modify read-only bits */
-        TRACE_IF(tr_debug("dfu_ctrl write request: rejected (read-only)"));
+        tr_debug("dfu_ctrl write request: rejected (read-only)");
         params->authorizationReply = (GattAuthCallbackReply_t) AUTH_CALLBACK_REPLY_ATTERR_APP_READONLY;
         return;
     }
@@ -284,16 +292,16 @@ void DFUService::on_dfu_ctrl_write_request(
     if(_ctrl_req_cb) {
         /* Forward request to the application */
         params->authorizationReply = _ctrl_req_cb(change);
-        TRACE_IF(tr_debug("dfu_ctrl write request: accepted (by application)"));
+        tr_debug("dfu_ctrl write request: accepted (by application)");
     } else {
         /* If no application handler, accept by default */
-        TRACE_IF(tr_debug("dfu_ctrl write request: accepted"));
+        tr_debug("dfu_ctrl write request: accepted");
         params->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 }
 
 void DFUService::on_dfu_ctrl_written(uint8_t new_ctrl) {
-    TRACE_IF(tr_debug("dfu_ctrl written: %d", new_ctrl));
+    tr_debug("dfu_ctrl written: %d", new_ctrl);
     mbed::ScopedLock<PlatformMutex> lock(_mutex);
     ControlChange change(*this, new_ctrl);
     /* Call application handler for control updates, if available */
@@ -302,7 +310,7 @@ void DFUService::on_dfu_ctrl_written(uint8_t new_ctrl) {
     }
 
     if(change.get_changed_bits() & DFU_CTRL_ENABLE_BIT) {
-        TRACE_IF(tr_debug("dfu mode %s", (change.value() & DFU_CTRL_ENABLE_BIT) ? "enabled" : "aborted"));
+        tr_debug("dfu mode %s", (change.value() & DFU_CTRL_ENABLE_BIT) ? "enabled" : "aborted");
 
         if(change.value() & DFU_CTRL_ENABLE_BIT) {
             /* If DFU is being enabled, clear the currently-selected update slot */
@@ -311,11 +319,11 @@ void DFUService::on_dfu_ctrl_written(uint8_t new_ctrl) {
     }
 
     if(change.get_changed_bits() & DFU_CTRL_DELTA_MODE_EN_BIT) {
-        TRACE_IF(tr_debug("delta mode %s", (change.value() & DFU_CTRL_DELTA_MODE_EN_BIT) ? "enabled" : "disabled"));
+        tr_debug("delta mode %s", (change.value() & DFU_CTRL_DELTA_MODE_EN_BIT) ? "enabled" : "disabled");
     }
 
     if(change.get_changed_bits() & DFU_CTRL_COMMIT_BIT) {
-        TRACE_IF(tr_debug("dfu commit"));
+        tr_debug("dfu commit");
     }
 
     _dfu_control = new_ctrl;
@@ -323,7 +331,7 @@ void DFUService::on_dfu_ctrl_written(uint8_t new_ctrl) {
 
 void DFUService::init_selected_slot(void) {
     mbed::ScopedLock<PlatformMutex> lock(_mutex); // TODO mutex lock necessary here?
-    TRACE_IF(tr_debug("initializing slot %d", _selected_slot))
+    tr_debug("initializing slot %d", _selected_slot);
     mbed::BlockDevice* slot = _slot_bds[_selected_slot];
     slot->init();
     slot->erase(0, slot->size());
@@ -344,9 +352,9 @@ void DFUService::process_buffer(void) {
      * have to program byte-by-byte. This would likely be a significant hit in speed.
      */
     bd_size_t write_size = (_bin_stream_buf.size() / slot->get_program_size()) * slot->get_program_size();
-    TRACE_IF(tr_debug("processing buffer: %lu => %lu",
+    tr_debug("processing buffer: %lu => %lu",
             _bin_stream_buf.size(),
-            write_size));
+            write_size);
     if(write_size == 0) {
         /* Skip 0-length writes */
         _scheduled_write = 0;
@@ -356,7 +364,7 @@ void DFUService::process_buffer(void) {
     _bin_stream_buf.pop(temp_buf, write_size);
     int result = slot->program(temp_buf, _current_offset, write_size);
     if(result) {
-        TRACE_IF(tr_err("programming memory error: %d", result));
+        tr_err("programming memory error: %d", result);
         set_status(DFU_STATE_FLASH_ERROR);
     }
     _current_offset += write_size;
@@ -364,9 +372,9 @@ void DFUService::process_buffer(void) {
 
     /* If the buffer isn't empty and a flush should be performed, pad the write */
     if(_bin_stream_buf.size() && _flush_bin_buf) {
-        TRACE_IF(tr_debug("flushing buffer: %lu => %lu",
+        tr_debug("flushing buffer: %lu => %lu",
                 _bin_stream_buf.size(),
-                write_size));
+                write_size);
         write_size = slot->get_program_size();
         temp_buf = new uint8_t[write_size];
         /* Pad the write buffer with the BD's erase value */
