@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-The will be many services contributed by multiple people. We need a common way of structuring the services
+There will be many services contributed by multiple people. We need a common way of structuring the services
 so it's easy for the user to pick up any one service.
 
 ## Decision
