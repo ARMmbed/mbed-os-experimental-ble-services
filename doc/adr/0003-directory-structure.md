@@ -16,6 +16,8 @@ change if these extensions are included into Mbed OS.
 
 ## Decision
 
+### Services
+
 Each service will be its own library. All services will be in the services directory.
 Each service will contain at least an include folder and a mbed_lib.json.
 
@@ -34,6 +36,10 @@ and the mbed_lib.json would contain at least:
     "name": "ble-service-example"
 }
 ```
+
+This way a user can clone the repo and include an individual service without getting unwanted includes.
+
+### Extensions
 
 If a service needs to share some common code between multiple services this code can be made into an extension.
 
@@ -64,7 +70,18 @@ and the service needs it's mbed_lib.json expanded with a
     requires: ["ble-extension-example"]
 ``` 
 
-This way a user can clone the repo and include an individual service without getting unwanted includes.
+### Tests
+
+Unit tests and integration tests go into the tests directory:
+
+```
+tests/UNITTESTS
+tests/TESTS
+```
+
+`TESTS` and `UNITTESTS` are automatically ignored by mbed tools when not building tests. Any other files or directories in
+the tests folder need to be added to `.mbedignore` in order to avoid compilation when the repo is included with the
+intention to use one of the services.
 
 ## Consequences
 
