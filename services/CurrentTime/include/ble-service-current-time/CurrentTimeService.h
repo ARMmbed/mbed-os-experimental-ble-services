@@ -25,7 +25,9 @@
 #include "events/EventQueue.h"
 #include "mbed_rtc_time.h"
 
-#include <time.h>
+#include <ctime>
+
+#define CURRENT_TIME_CHAR_VALUE_SIZE 10
 
 /**
  * BLE Current Time Service
@@ -41,18 +43,36 @@
  */
 class CurrentTimeService : private ble::Gap::EventHandler {
 public:
-    struct CurrentTime {
+    MBED_PACKED(struct) CurrentTime {
+        /* Year as defined by the Gregorian calendar.
+         * Valid range 1582 to 9999.
+         * */
         uint16_t year;
+        /* Month of the year as defined by the Gregorian calendar.
+         * Valid range 1 (January) to 12 (December).
+         * */
         uint8_t  month;
+        /* Day of the month as defined by the Gregorian calendar.
+         * Valid range 1 to 31.
+         * */
         uint8_t  day;
+        /* Number of hours past midnight.
+         * Valid range 0 to 23.
+         * */
         uint8_t  hours;
+        /* Number of minutes since the start of the hour.
+         * Valid range 0 to 59.
+         * */
         uint8_t  minutes;
+        /* Number of seconds since the start of the minute.
+         * Valid range 0 to 59.
+         * */
         uint8_t  seconds;
-
+        /* ... */
         uint8_t  weekday;
-
+        /* ... */
         uint8_t  fractions256;
-
+        /* ... */
         uint8_t  adjustReason;
     };
 
@@ -73,104 +93,118 @@ public:
      * @param handler EventHandler object to handle events raised by the current time service
      */
     void set_event_handler(EventHandler *handler) {
-
+        _current_time_handler = handler;
     }
 
     /**
      * Construct and initialize a current time service.
      *
      * @param ble
-     * @param event_queue
-     * @param chainable_gap_event_handler
      */
-    CurrentTimeService(BLE &ble, events::EventQueue &event_queue) :
+    CurrentTimeService(BLE &ble) :
             _ble(ble),
-            _event_queue(event_queue),
-            _current_time_char(GattCharacteristic::UUID_CURRENT_TIME_CHAR, &_current_time) {
-        memset(&_current_time, 0, sizeof(_current_time));
+            _current_time_char(GattCharacteristic::UUID_CURRENT_TIME_CHAR, &_current_time)
+    {
     }
 
+    /**
+     *
+     * @return
+     */
     ble_error_t init() {
         GattCharacteristic *charTable[] = {&_current_time_char};
         GattService currentTimeService(GattService::UUID_CURRENT_TIME_SERVICE, charTable, 1);
 
-        _current_time_char.setReadAuthorizationCallback(this, &CurrentTimeService::onDataRead);
-        _current_time_char.setReadAuthorizationCallback(this, &CurrentTimeService::onDataRead);
+        _current_time_char.setReadAuthorizationCallback (this, &CurrentTimeService::onDataRead);
+        _current_time_char.setWriteAuthorizationCallback(this, &CurrentTimeService::onDataWritten);
 
         ble_error_t bleError = _ble.gattServer().addService(currentTimeService);
+
+        MBED_ASSERT(sizeof(_current_time) == CURRENT_TIME_CHAR_VALUE_SIZE);
 
         return bleError;
     }
 
-    time_t get_current_time() {
-        time_t t = time(NULL);
+    /**
+     *
+     * @return
+     */
+    time_t get_time() {
+        time_t epoch_time = time(nullptr);
 
-        return _current_time_offset + t;
+        return epoch_time + _time_offset;
     }
 
+    /**
+     *
+     * @param new_time
+     */
     void set_time(time_t new_time) {
-        time_t t = time(NULL);
+        time_t epoch_time = time(nullptr);
 
-        _current_time_offset = t - new_time;
+        _time_offset = new_time - epoch_time;
     }
 
 private:
-    void set_current_time() {
-        timeval tv{};
-        gettimeofday(&tv, NULL);
-        // printf("%u\r\n", (unsigned int) tv.tv_sec);
-
-        struct tm *current_time;
-        time_t local_time = tv.tv_sec + _current_time_offset;
-        current_time = localtime(&local_time);
-
-        _current_time.year    = current_time->tm_year + 1900;
-        _current_time.month   = current_time->tm_mon  + 1;
-        _current_time.day     = current_time->tm_mday;
-        _current_time.hours   = current_time->tm_hour;
-        _current_time.minutes = current_time->tm_min;
-        _current_time.seconds = current_time->tm_sec;
-        _current_time.weekday = (current_time->tm_wday == 0) ? 7 : current_time->tm_wday;
-        // 1/256th of seconds not supported
-        _current_time.fractions256 = 0;
-    }
-
     void onDataRead(GattReadAuthCallbackParams *read_request) {
-        set_current_time();
+        uint8_t *data_ptr = reinterpret_cast<uint8_t *>(&_current_time);
 
-        _ble.gattServer().write(_current_time_char.getValueHandle(),
-                                reinterpret_cast<const uint8_t *>(&_current_time),
-                                sizeof(_current_time));
+        timeval epoch_time{};
+        gettimeofday(&epoch_time, nullptr);
+        time_t local_time = epoch_time.tv_sec + _time_offset;
 
+        struct tm *current_time = localtime(&local_time);
+
+        /* Should be moved to dedicated function */
+        *data_ptr++ = (current_time->tm_year + 1900);
+        *data_ptr++ = (current_time->tm_year + 1900) >> 8;
+        *data_ptr++ =  current_time->tm_mon  + 1;
+        *data_ptr++ =  current_time->tm_mday;
+        *data_ptr++ =  current_time->tm_hour;
+        *data_ptr++ =  current_time->tm_min;
+        *data_ptr++ =  current_time->tm_sec;
+        *data_ptr++ = (current_time->tm_wday == 0) ? 7 : current_time->tm_wday;
+        *data_ptr   =  0;
+
+        read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
+        read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
         read_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 
     void onDataWritten(GattWriteAuthCallbackParams *write_request) {
-        const uint8_t *ct = (write_request->data);
+        const uint8_t *data_ptr = write_request->data;
 
-        struct tm *current_time;
+        struct tm current_time{};
 
-        current_time->tm_year = (*ct | (*(ct + 1) << 8)) - 1900;
-        ct += 2;
-        current_time->tm_mon  =  *ct++ - 1;
-        current_time->tm_mday =  *ct++;
-        current_time->tm_hour =  *ct++;
-        current_time->tm_min  =  *ct++;
-        current_time->tm_sec  =  *ct++;
-        current_time->tm_wday =  (*ct == 7 ? 0 : *ct);
+        /* Should be moved to dedicated function */
+        current_time.tm_year  = (*data_ptr | (*(data_ptr + 1) << 8)) - 1900;
+        data_ptr += 2;
+        current_time.tm_mon   =  *data_ptr++ - 1;
+        current_time.tm_mday  =  *data_ptr++;
+        current_time.tm_hour  =  *data_ptr++;
+        current_time.tm_min   =  *data_ptr++;
+        current_time.tm_sec   =  *data_ptr++;
+        current_time.tm_wday  = (*data_ptr == 7 ? 0 : *data_ptr);
+        current_time.tm_isdst =  0;
 
-        time_t remote_time = mktime(current_time);
+        time_t remote_time = mktime(&current_time);
 
         set_time(remote_time);
+
+        if (_current_time_handler) {
+            _current_time_handler->on_current_time_written(remote_time);
+        }
+
+        write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 
+private:
     BLE &_ble;
-    events::EventQueue &_event_queue;
 
-    CurrentTime _current_time;
+    CurrentTime _current_time = { 0 };
     ReadWriteGattCharacteristic<CurrentTime> _current_time_char;
-    time_t _current_time_offset = 0;
-    EventHandler *_alert_handler = nullptr;
+    time_t _time_offset = 0;
+    EventHandler *_current_time_handler = nullptr;
 };
 
 #endif // BLE_FEATURE_GATT_SERVER
