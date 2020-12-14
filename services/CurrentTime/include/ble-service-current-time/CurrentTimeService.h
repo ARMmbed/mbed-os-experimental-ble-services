@@ -41,7 +41,7 @@
  *
  * @attention The user should not instantiate more than a single current time service service
  */
-class CurrentTimeService : private ble::Gap::EventHandler {
+class CurrentTimeService {
 public:
     MBED_PACKED(struct) CurrentTime {
         /* Year as defined by the Gregorian calendar.
@@ -82,7 +82,7 @@ public:
          *
          * This function is called if the current time characteristic is changed by the client
          */
-        virtual void on_current_time_written(time_t current_time) {}
+        virtual void on_current_time_written(time_t current_time) { }
     };
 
     /**
@@ -95,90 +95,43 @@ public:
     }
 
     /**
-     * Construct and initialize a current time service.
+     * Constructor
      *
      * @param ble
      */
-    CurrentTimeService(BLE &ble) :
-            _ble(ble),
-            _current_time_char(GattCharacteristic::UUID_CURRENT_TIME_CHAR, &_current_time)
-    {
-    }
+    CurrentTimeService(BLE &ble);
 
     /**
+     * Destructor
+     */
+    ~CurrentTimeService();
+
+    CurrentTimeService(const CurrentTimeService&) = delete;
+    CurrentTimeService &operator=(const CurrentTimeService&) = delete;
+
+    /**
+     * Initializer
      *
      * @return
      */
-    ble_error_t init() {
-        GattCharacteristic *charTable[] = {&_current_time_char};
-        GattService currentTimeService(GattService::UUID_CURRENT_TIME_SERVICE, charTable, 1);
-
-        _current_time_char.setReadAuthorizationCallback (this, &CurrentTimeService::onDataRead);
-        _current_time_char.setWriteAuthorizationCallback(this, &CurrentTimeService::onDataWritten);
-
-        ble_error_t bleError = _ble.gattServer().addService(currentTimeService);
-
-        MBED_ASSERT(sizeof(_current_time) == CURRENT_TIME_CHAR_VALUE_SIZE);
-
-        return bleError;
-    }
+    ble_error_t init();
 
     /**
+     * Get time
      *
      * @return
      */
-    time_t get_time() {
-        time_t epoch_time = time(nullptr);
-
-        return epoch_time + _time_offset;
-    }
+    time_t get_time();
 
     /**
+     * Set time
      *
      * @param new_time
      */
-    void set_time(time_t new_time) {
-        time_t epoch_time = time(nullptr);
-
-        _time_offset = new_time - epoch_time;
-    }
-
-private:
-    void onDataRead(GattReadAuthCallbackParams *read_request) {
-        uint8_t *data = reinterpret_cast<uint8_t *>(&_current_time);
-
-        time_t local_time = get_time();
-
-        struct tm *local_time_tm = localtime(&local_time);
-
-        serialise(data, local_time_tm);
-
-        read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
-        read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
-        read_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
-    }
-
-    void onDataWritten(GattWriteAuthCallbackParams *write_request) {
-        const uint8_t *data = write_request->data;
-
-        struct tm remote_time_tm{};
-
-        deserialize(&remote_time_tm, data);
-
-        time_t remote_time = mktime(&remote_time_tm);
-
-        set_time(remote_time);
-
-        if (_current_time_handler) {
-            _current_time_handler->on_current_time_written(remote_time);
-        }
-
-        write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
-    }
+    void set_time(time_t new_time);
 
 //    /**
 //     * Validate all fields of CurrentTime struct
-//     *
 //     *
 //     * @return
 //     */
@@ -186,41 +139,14 @@ private:
 //
 //    }
 
-    void serialise(uint8_t *data, const struct tm *local_time_tm) {
-        *data++ = (local_time_tm->tm_year + 1900);
-        *data++ = (local_time_tm->tm_year + 1900) >> 8;
-        *data++ =  local_time_tm->tm_mon  + 1;
-        *data++ =  local_time_tm->tm_mday;
-        *data++ =  local_time_tm->tm_hour;
-        *data++ =  local_time_tm->tm_min;
-        *data++ =  local_time_tm->tm_sec;
-        /*
-         * The tm_wday field of a tm struct means days since Sunday (0-6)
-         * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
-         * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
-         * Otherwise, the fields signify the same days and no correction is needed
-        */
-        *data++ =  local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
-        *data   =  0;
-    }
+private:
+    void onDataRead(GattReadAuthCallbackParams *read_request);
 
-    void deserialize(struct tm *remote_time_tm, const uint8_t *data) {
+    void onDataWritten(GattWriteAuthCallbackParams *write_request);
 
-        remote_time_tm->tm_year  = (*data | (*(data + 1) << 8)) - 1900;
-        data += 2;
-        remote_time_tm->tm_mon   =  *data++ - 1;
-        remote_time_tm->tm_mday  =  *data++;
-        remote_time_tm->tm_hour  =  *data++;
-        remote_time_tm->tm_min   =  *data++;
-        remote_time_tm->tm_sec   =  *data++;
-        /*
-         * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
-         * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
-         * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
-         * Otherwise, the fields signify the same days and no correction is needed
-        */
-        remote_time_tm->tm_wday  = (*data == 7 ? 0 : *data);
-    }
+    void serialize(uint8_t *data, const struct tm *local_time_tm);
+
+    void deserialize(struct tm *remote_time_tm, const uint8_t *data);
 
 private:
     BLE &_ble;
