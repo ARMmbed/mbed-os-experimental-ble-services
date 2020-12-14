@@ -81,8 +81,6 @@ public:
          * On current time changed
          *
          * This function is called if the current time characteristic is changed by the client
-         *
-         * @attention This is an abstract function and should be overridden by the user.
          */
         virtual void on_current_time_written(time_t current_time) {}
     };
@@ -147,29 +145,13 @@ public:
 
 private:
     void onDataRead(GattReadAuthCallbackParams *read_request) {
-        uint8_t *data_ptr = reinterpret_cast<uint8_t *>(&_current_time);
+        uint8_t *data = reinterpret_cast<uint8_t *>(&_current_time);
 
-        timeval epoch_time{};
-        gettimeofday(&epoch_time, nullptr);
-        time_t local_time = epoch_time.tv_sec + _time_offset;
+        time_t local_time = get_time();
 
         struct tm *local_time_tm = localtime(&local_time);
 
-        *data_ptr++ = (local_time_tm ->tm_year + 1900);
-        *data_ptr++ = (local_time_tm ->tm_year + 1900) >> 8;
-        *data_ptr++ =  local_time_tm ->tm_mon  + 1;
-        *data_ptr++ =  local_time_tm ->tm_mday;
-        *data_ptr++ =  local_time_tm ->tm_hour;
-        *data_ptr++ =  local_time_tm ->tm_min;
-        *data_ptr++ =  local_time_tm ->tm_sec;
-        /*
-         * The tm_wday field of a tm struct means days since Sunday (0-6)
-         * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
-         * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
-         * Otherwise, the fields signify the same days and no correction is needed
-        */
-        *data_ptr++ = (local_time_tm ->tm_wday == 0) ? 7 : local_time_tm ->tm_wday;
-        *data_ptr   =  0;
+        serialise(data, local_time_tm);
 
         read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
         read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
@@ -177,25 +159,11 @@ private:
     }
 
     void onDataWritten(GattWriteAuthCallbackParams *write_request) {
-        const uint8_t *data_ptr = write_request->data;
+        const uint8_t *data = write_request->data;
 
         struct tm remote_time_tm{};
 
-        remote_time_tm.tm_year  = (*data_ptr | (*(data_ptr + 1) << 8)) - 1900;
-        data_ptr += 2;
-        remote_time_tm.tm_mon   =  *data_ptr++ - 1;
-        remote_time_tm.tm_mday  =  *data_ptr++;
-        remote_time_tm.tm_hour  =  *data_ptr++;
-        remote_time_tm.tm_min   =  *data_ptr++;
-        remote_time_tm.tm_sec   =  *data_ptr++;
-        /*
-         * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
-         * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
-         * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
-         * Otherwise, the fields signify the same days and no correction is needed
-        */
-        remote_time_tm.tm_wday  = (*data_ptr == 7 ? 0 : *data_ptr);
-        remote_time_tm.tm_isdst =  0;
+        deserialize(&remote_time_tm, data);
 
         time_t remote_time = mktime(&remote_time_tm);
 
@@ -206,6 +174,52 @@ private:
         }
 
         write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    }
+
+//    /**
+//     * Validate all fields of CurrentTime struct
+//     *
+//     *
+//     * @return
+//     */
+//    bool validate() {
+//
+//    }
+
+    void serialise(uint8_t *data, const struct tm *local_time_tm) {
+        *data++ = (local_time_tm->tm_year + 1900);
+        *data++ = (local_time_tm->tm_year + 1900) >> 8;
+        *data++ =  local_time_tm->tm_mon  + 1;
+        *data++ =  local_time_tm->tm_mday;
+        *data++ =  local_time_tm->tm_hour;
+        *data++ =  local_time_tm->tm_min;
+        *data++ =  local_time_tm->tm_sec;
+        /*
+         * The tm_wday field of a tm struct means days since Sunday (0-6)
+         * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
+         * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
+         * Otherwise, the fields signify the same days and no correction is needed
+        */
+        *data++ =  local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
+        *data   =  0;
+    }
+
+    void deserialize(struct tm *remote_time_tm, const uint8_t *data) {
+
+        remote_time_tm->tm_year  = (*data | (*(data + 1) << 8)) - 1900;
+        data += 2;
+        remote_time_tm->tm_mon   =  *data++ - 1;
+        remote_time_tm->tm_mday  =  *data++;
+        remote_time_tm->tm_hour  =  *data++;
+        remote_time_tm->tm_min   =  *data++;
+        remote_time_tm->tm_sec   =  *data++;
+        /*
+         * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
+         * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
+         * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
+         * Otherwise, the fields signify the same days and no correction is needed
+        */
+        remote_time_tm->tm_wday  = (*data == 7 ? 0 : *data);
     }
 
 private:
