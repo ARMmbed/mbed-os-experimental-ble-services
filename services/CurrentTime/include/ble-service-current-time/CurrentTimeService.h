@@ -154,8 +154,7 @@ private:
         time_t local_time = epoch_time.tv_sec + _time_offset;
 
         struct tm *current_time = localtime(&local_time);
-
-        /* Should be moved to dedicated function */
+        
         *data_ptr++ = (current_time->tm_year + 1900);
         *data_ptr++ = (current_time->tm_year + 1900) >> 8;
         *data_ptr++ =  current_time->tm_mon  + 1;
@@ -163,6 +162,12 @@ private:
         *data_ptr++ =  current_time->tm_hour;
         *data_ptr++ =  current_time->tm_min;
         *data_ptr++ =  current_time->tm_sec;
+        /*
+         * The tm_wday field of a tm struct means days since Sunday (0-6)
+         * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
+         * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
+         * Otherwise, the fields signify the same days and no correction is needed
+        */
         *data_ptr++ = (current_time->tm_wday == 0) ? 7 : current_time->tm_wday;
         *data_ptr   =  0;
 
@@ -176,7 +181,6 @@ private:
 
         struct tm current_time{};
 
-        /* Should be moved to dedicated function */
         current_time.tm_year  = (*data_ptr | (*(data_ptr + 1) << 8)) - 1900;
         data_ptr += 2;
         current_time.tm_mon   =  *data_ptr++ - 1;
@@ -184,6 +188,12 @@ private:
         current_time.tm_hour  =  *data_ptr++;
         current_time.tm_min   =  *data_ptr++;
         current_time.tm_sec   =  *data_ptr++;
+        /*
+         * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
+         * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
+         * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
+         * Otherwise, the fields signify the same days and no correction is needed
+        */
         current_time.tm_wday  = (*data_ptr == 7 ? 0 : *data_ptr);
         current_time.tm_isdst =  0;
 
