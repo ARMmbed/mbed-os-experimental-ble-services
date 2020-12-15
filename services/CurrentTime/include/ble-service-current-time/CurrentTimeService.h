@@ -68,31 +68,23 @@ public:
          * Valid range 0 to 59.
          * */
         uint8_t  seconds;
-        /* ... */
+        /*
+         * */
         uint8_t  weekday;
-        /* ... */
+        /* Reason(s) for adjusting time.
+         * */
         uint8_t  fractions256;
-        /* ... */
         uint8_t  adjustReason;
     };
 
     struct EventHandler {
         /**
-         * On current time changed
+         * On current time written
          *
          * This function is called if the current time characteristic is changed by the client
          */
         virtual void on_current_time_written(time_t current_time) { }
     };
-
-    /**
-     * Set event handler
-     *
-     * @param handler EventHandler object to handle events raised by the current time service
-     */
-    void set_event_handler(EventHandler *handler) {
-        _current_time_handler = handler;
-    }
 
     /**
      * Constructor
@@ -124,20 +116,24 @@ public:
     time_t get_time();
 
     /**
+     *
+     * @param handler
+     */
+    void set_event_handler(EventHandler *handler);
+
+    /**
      * Set time
      *
      * @param new_time
      */
     void set_time(time_t new_time);
 
-//    /**
-//     * Validate all fields of CurrentTime struct
-//     *
-//     * @return
-//     */
-//    bool validate() {
-//
-//    }
+    /**
+     * Validate all fields of CurrentTime struct
+     *
+     * @return
+     */
+    bool current_time_is_valid();
 
 private:
     void onDataRead(GattReadAuthCallbackParams *read_request);
@@ -146,7 +142,7 @@ private:
 
     void serialize(uint8_t *data, const struct tm *local_time_tm);
 
-    void deserialize(struct tm *remote_time_tm, const uint8_t *data);
+    bool deserialize(struct tm *remote_time_tm, const uint8_t *data);
 
 private:
     BLE &_ble;

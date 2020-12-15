@@ -42,19 +42,55 @@ ble_error_t CurrentTimeService::init()
     return bleError;
 }
 
-time_t CurrentTimeService::get_time() {
+void CurrentTimeService::set_event_handler(EventHandler *handler) {
+    _current_time_handler = handler;
+}
+
+time_t CurrentTimeService::get_time()
+{
     time_t epoch_time = time(nullptr);
 
     return epoch_time + _time_offset;
 }
 
-void CurrentTimeService::set_time(time_t new_time) {
+void CurrentTimeService::set_time(time_t new_time)
+{
     time_t epoch_time = time(nullptr);
 
     _time_offset = new_time - epoch_time;
 }
 
-void CurrentTimeService::onDataRead(GattReadAuthCallbackParams *read_request) {
+bool CurrentTimeService::current_time_is_valid()
+{
+    bool result = true;
+
+    if ((_current_time.year    < 1582) || (_current_time.year    > 9999)) {
+        result = false;
+    }
+    if ((_current_time.month   <    1) || (_current_time.month   >   12)) {
+        result = false;
+    }
+    if ((_current_time.day     <    1) || (_current_time.day     >   31)) {
+        result = false;
+    }
+    if ((_current_time.hours   <    0) || (_current_time.hours   >   23)) {
+        result = false;
+    }
+    if ((_current_time.minutes <    0) || (_current_time.minutes >   59)) {
+        result = false;
+    }
+    if ((_current_time.seconds <    0) || (_current_time.seconds >   59)) {
+        result = false;
+    }
+    if ((_current_time.weekday <    1) || (_current_time.weekday >    7)) {
+        result = false;
+    }
+
+    return result;
+}
+
+void CurrentTimeService::onDataRead(GattReadAuthCallbackParams *read_request)
+{
     uint8_t *data = reinterpret_cast<uint8_t *>(&_current_time);
 
     time_t local_time = get_time();
@@ -68,12 +104,19 @@ void CurrentTimeService::onDataRead(GattReadAuthCallbackParams *read_request) {
     read_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
 }
 
-void CurrentTimeService::onDataWritten(GattWriteAuthCallbackParams *write_request) {
+void CurrentTimeService::onDataWritten(GattWriteAuthCallbackParams *write_request)
+{
     const uint8_t *data = write_request->data;
 
     struct tm remote_time_tm{};
 
-    deserialize(&remote_time_tm, data);
+    write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+
+    if (!deserialize(&remote_time_tm, data)) {
+        /* The alert level is out of range
+         * */
+        write_request->authorizationReply = static_cast<GattAuthCallbackReply_t>(0xFF);
+    }
 
     time_t remote_time = mktime(&remote_time_tm);
 
@@ -82,11 +125,10 @@ void CurrentTimeService::onDataWritten(GattWriteAuthCallbackParams *write_reques
     if (_current_time_handler) {
         _current_time_handler->on_current_time_written(remote_time);
     }
-
-    write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
 }
 
-void CurrentTimeService::serialize(uint8_t *data, const struct tm *local_time_tm) {
+void CurrentTimeService::serialize(uint8_t *data, const struct tm *local_time_tm)
+{
     *data++ = (local_time_tm->tm_year + 1900);
     *data++ = (local_time_tm->tm_year + 1900) >> 8;
     *data++ =  local_time_tm->tm_mon  + 1;
@@ -99,25 +141,46 @@ void CurrentTimeService::serialize(uint8_t *data, const struct tm *local_time_tm
      * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
      * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
      * Otherwise, the fields signify the same days and no correction is needed
-    */
+     * */
     *data++ =  local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
     *data   =  0;
 }
 
-void CurrentTimeService::deserialize(struct tm *remote_time_tm, const uint8_t *data) {
+bool CurrentTimeService::deserialize(struct tm *remote_time_tm, const uint8_t *data)
+{
+    bool deserialization_is_possible;
 
-    remote_time_tm->tm_year  = (*data | (*(data + 1) << 8)) - 1900;
-    data += 2;
-    remote_time_tm->tm_mon   =  *data++ - 1;
-    remote_time_tm->tm_mday  =  *data++;
-    remote_time_tm->tm_hour  =  *data++;
-    remote_time_tm->tm_min   =  *data++;
-    remote_time_tm->tm_sec   =  *data++;
-    /*
-     * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
-     * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
-     * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
-     * Otherwise, the fields signify the same days and no correction is needed
-    */
-    remote_time_tm->tm_wday  = (*data == 7 ? 0 : *data);
+    _current_time.year    = *data | (*(data + 1) << 8);
+    _current_time.month   = *data++;
+    _current_time.day     = *data++;
+    _current_time.hours   = *data++;
+    _current_time.minutes = *data++;
+    _current_time.seconds = *data++;
+    _current_time.weekday = *data++;
+
+    if (current_time_is_valid()) {
+        remote_time_tm->tm_year  =  _current_time.year - 1900;
+        data += 2;
+        remote_time_tm->tm_mon   =  _current_time.month - 1;
+        remote_time_tm->tm_mday  =  _current_time.day;
+        remote_time_tm->tm_hour  =  _current_time.hours;
+        remote_time_tm->tm_min   =  _current_time.minutes;
+        remote_time_tm->tm_sec   =  _current_time.seconds;
+        /*
+         * The weekday field of a CurrentTime struct means Mon-Sun (1-7)
+         * However, the tm_wday field of a tm_day struct means days since Sunday (0-6)
+         * So, if weekday = 7, i.e. Sunday, the correct value for tm_wday is 0
+         * Otherwise, the fields signify the same days and no correction is needed
+         * */
+        remote_time_tm->tm_wday  = (_current_time.weekday == 7 ? 0 : _current_time.weekday);
+
+        deserialization_is_possible = true;
+    } else {
+        /* Invalid data written to CurrentTime struct, can't deserialize
+         * */
+        _current_time = { 0 };
+        deserialization_is_possible = false;
+    }
+
+    return deserialization_is_possible;
 }
