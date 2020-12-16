@@ -27,8 +27,6 @@
 
 #include <ctime>
 
-#define CURRENT_TIME_CHAR_VALUE_SIZE 10
-
 /**
  * Current Time Service
  *
@@ -45,7 +43,75 @@
  */
 class CurrentTimeService {
 public:
+    struct EventHandler {
+        /**
+         * This function is called if the current time characteristic is changed by the client
+         */
+        virtual void on_current_time_changed(time_t current_time) { }
+    };
+
+    /**
+     * Initialize the internal BLE object to @p ble and configure the current time characteristic
+     * with the appropriate UUID.
+     *
+     * @param ble BLE object to host the current time service
+     *
+     * @attention The Initializer must be called after instantiating a current time service.
+     */
+    CurrentTimeService(BLE &ble);
+
+    ~CurrentTimeService() = default;
+
+    CurrentTimeService(const CurrentTimeService&) = delete;
+    CurrentTimeService &operator=(const CurrentTimeService&) = delete;
+
+    /**
+     * Set the onCurrentTimeRead() and onCurrentTimeWritten() functions as the read authorization callback
+     * and write authorization callback, respectively for the current time characteristic.
+     * Add the current time service to the BLE device.
+     *
+     * @return BLE_ERROR_NONE if the service was successfully added.
+     */
+    ble_error_t init();
+
+    /**
+    * Set the event handler to handle events raised by the current time service.
+    *
+    * @param handler EventHandler object.
+    */
+    void set_event_handler(EventHandler *handler);
+
+    /**
+     * Get the time in seconds since 00:00 January 1, 1970 plus a configurable offset.
+     *
+     * @return Time in seconds.
+     */
+    time_t get_time();
+
+    /**
+     * Set the time offset, i.e. the time in seconds beyond Epoch time.
+     *
+     * @param host_time Time in seconds according to your host.
+     *
+     */
+    void set_time(time_t host_time);
+
+private:
+    void onCurrentTimeRead(GattReadAuthCallbackParams *read_request);
+
+    void onCurrentTimeWritten(GattWriteAuthCallbackParams *write_request);
+
+private:
     MBED_PACKED(struct) CurrentTime {
+        CurrentTime() = default;
+
+        CurrentTime(const uint8_t *data);
+        CurrentTime(const struct tm *local_time_tm);
+
+        bool valid();
+
+        bool to_tm(struct tm * remote_time_tm);
+
         /**
          * Year as defined by the Gregorian calendar.
          * Valid range 1582 to 9999.
@@ -92,79 +158,9 @@ public:
         uint8_t  adjust_reason;
     };
 
-    struct EventHandler {
-        /**
-         * This function is called if the current time characteristic is changed by the client
-         */
-        virtual void on_current_time_changed(time_t current_time) { }
-    };
-
-    /**
-     * Initialize the internal BLE object to @p ble and configure the current time characteristic
-     * with the appropriate UUID.
-     *
-     * @param ble BLE object to host the current time service
-     *
-     * @attention The Initializer must be called after instantiating a current time service.
-     */
-    CurrentTimeService(BLE &ble);
-
-    ~CurrentTimeService();
-
-    CurrentTimeService(const CurrentTimeService&) = delete;
-    CurrentTimeService &operator=(const CurrentTimeService&) = delete;
-
-    /**
-     * Set the onCurrentTimeRead() and onCurrentTimeWritten() functions as the read authorization callback
-     * and write authorization callback, respectively for the current time characteristic.
-     * Add the current time service to the BLE device.
-     *
-     * @return BLE_ERROR_NONE if the service was successfully added.
-     */
-    ble_error_t init();
-
-    /**
-    * Set the event handler to handle events raised by the current time service.
-    *
-    * @param handler EventHandler object.
-    */
-    void set_event_handler(EventHandler *handler);
-
-    /**
-     * Get the time in seconds since 00:00 January 1, 1970 plus a configurable offset.
-     *
-     * @return Time in seconds.
-     */
-    time_t get_time();
-
-    /**
-     * Set the time offset, i.e. the time in seconds beyond Epoch time.
-     *
-     * @param host_time Time in seconds according to your host.
-     *
-     */
-    void set_time(time_t host_time);
-
-    /**
-     * Check all fields of the current time object.
-     *
-     * @return False, if any of the fields are out of range; otherwise, true.
-     */
-    bool current_time_is_valid();
-
-private:
-    void onDataRead(GattReadAuthCallbackParams *read_request);
-
-    void onDataWritten(GattWriteAuthCallbackParams *write_request);
-
-    void serialize(uint8_t *data, const struct tm *local_time_tm);
-
-    bool deserialize(struct tm *remote_time_tm, const uint8_t *data);
-
-private:
     BLE &_ble;
 
-    CurrentTime _current_time = { 0 };
+    CurrentTime _current_time;
     ReadWriteGattCharacteristic<CurrentTime> _current_time_char;
     time_t _time_offset = 0;
     EventHandler *_current_time_handler = nullptr;
