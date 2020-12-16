@@ -37,7 +37,7 @@ ble_error_t CurrentTimeService::init()
 
     ble_error_t bleError = _ble.gattServer().addService(currentTimeService);
 
-    MBED_ASSERT(sizeof(_current_time) == CURRENT_TIME_CHAR_VALUE_SIZE);
+    MBED_STATIC_ASSERT(sizeof(_current_time) == CURRENT_TIME_CHAR_VALUE_SIZE, "Current time characteristic value size = 10");
 
     return bleError;
 }
@@ -53,40 +53,38 @@ time_t CurrentTimeService::get_time()
     return epoch_time + _time_offset;
 }
 
-void CurrentTimeService::set_time(time_t new_time)
+void CurrentTimeService::set_time(time_t host_time)
 {
     time_t epoch_time = time(nullptr);
 
-    _time_offset = new_time - epoch_time;
+    _time_offset = host_time - epoch_time;
 }
 
 bool CurrentTimeService::current_time_is_valid()
 {
-    bool result = true;
-
     if ((_current_time.year    < 1582) || (_current_time.year    > 9999)) {
-        result = false;
+        return false;
     }
     if ((_current_time.month   <    1) || (_current_time.month   >   12)) {
-        result = false;
+        return false;
     }
     if ((_current_time.day     <    1) || (_current_time.day     >   31)) {
-        result = false;
+        return false;
     }
-    if ((_current_time.hours   <    0) || (_current_time.hours   >   23)) {
-        result = false;
+    if ( _current_time.hours   >   23) {
+        return false;
     }
-    if ((_current_time.minutes <    0) || (_current_time.minutes >   59)) {
-        result = false;
+    if ( _current_time.minutes >   59) {
+        return false;
     }
-    if ((_current_time.seconds <    0) || (_current_time.seconds >   59)) {
-        result = false;
+    if ( _current_time.seconds >   59) {
+        return false;
     }
     if ((_current_time.weekday <    1) || (_current_time.weekday >    7)) {
-        result = false;
+        return false;
     }
 
-    return result;
+    return true;
 }
 
 void CurrentTimeService::onDataRead(GattReadAuthCallbackParams *read_request)
@@ -99,9 +97,13 @@ void CurrentTimeService::onDataRead(GattReadAuthCallbackParams *read_request)
 
     serialize(data, local_time_tm);
 
-    read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
-    read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
-    read_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    if (current_time_is_valid()) {
+        read_request->data = data;
+        read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
+        read_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    } else {
+        read_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_UNLIKELY_ERROR;
+    }
 }
 
 void CurrentTimeService::onDataWritten(GattWriteAuthCallbackParams *write_request)
@@ -110,20 +112,18 @@ void CurrentTimeService::onDataWritten(GattWriteAuthCallbackParams *write_reques
 
     struct tm remote_time_tm{};
 
-    write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    if (deserialize(&remote_time_tm, data)) {
+        time_t remote_time = mktime(&remote_time_tm);
 
-    if (!deserialize(&remote_time_tm, data)) {
-        /* The alert level is out of range
-         * */
-        write_request->authorizationReply = static_cast<GattAuthCallbackReply_t>(0xFF);
-    }
+        set_time(remote_time);
 
-    time_t remote_time = mktime(&remote_time_tm);
+        if (_current_time_handler) {
+            _current_time_handler->on_current_time_changed(remote_time);
+        }
 
-    set_time(remote_time);
-
-    if (_current_time_handler) {
-        _current_time_handler->on_current_time_written(remote_time);
+        write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    } else {
+        write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_RANGE;
     }
 }
 
@@ -148,8 +148,6 @@ void CurrentTimeService::serialize(uint8_t *data, const struct tm *local_time_tm
 
 bool CurrentTimeService::deserialize(struct tm *remote_time_tm, const uint8_t *data)
 {
-    bool deserialization_is_possible;
-
     _current_time.year    = *data | (*(data + 1) << 8);
     _current_time.month   = *data++;
     _current_time.day     = *data++;
@@ -174,13 +172,10 @@ bool CurrentTimeService::deserialize(struct tm *remote_time_tm, const uint8_t *d
          * */
         remote_time_tm->tm_wday  = (_current_time.weekday == 7 ? 0 : _current_time.weekday);
 
-        deserialization_is_possible = true;
+        return true;
     } else {
         /* Invalid data written to CurrentTime struct, can't deserialize
          * */
-        _current_time = { 0 };
-        deserialization_is_possible = false;
+        return false;
     }
-
-    return deserialization_is_possible;
 }

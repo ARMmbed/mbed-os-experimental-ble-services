@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef BLE_CURRENT_TIME_SERVICE_H
-#define BLE_CURRENT_TIME_SERVICE_H
+#ifndef CURRENT_TIME_SERVICE_H
+#define CURRENT_TIME_SERVICE_H
 
 #ifdef BLE_FEATURE_GATT_SERVER
 
@@ -30,11 +30,13 @@
 #define CURRENT_TIME_CHAR_VALUE_SIZE 10
 
 /**
- * BLE Current Time Service
+ * Current Time Service
  *
  * @par purpose
+ * The current time service allows a BLE device to expose date and time information to other BLE devices.
  *
  * @par usage
+ * The on_current_time_changed() event handler should overridden by your application
  *
  * @note The specification for the current time service can be found here:
  * https://www.bluetooth.com/specifications/gatt
@@ -44,94 +46,109 @@
 class CurrentTimeService {
 public:
     MBED_PACKED(struct) CurrentTime {
-        /* Year as defined by the Gregorian calendar.
+        /**
+         * Year as defined by the Gregorian calendar.
          * Valid range 1582 to 9999.
-         * */
+         */
         uint16_t year;
-        /* Month of the year as defined by the Gregorian calendar.
+        /**
+         * Month of the year as defined by the Gregorian calendar.
          * Valid range 1 (January) to 12 (December).
-         * */
+         */
         uint8_t  month;
-        /* Day of the month as defined by the Gregorian calendar.
+        /**
+         * Day of the month as defined by the Gregorian calendar.
          * Valid range 1 to 31.
-         * */
+         */
         uint8_t  day;
-        /* Number of hours past midnight.
+        /**
+         * Number of hours past midnight.
          * Valid range 0 to 23.
-         * */
+         */
         uint8_t  hours;
-        /* Number of minutes since the start of the hour.
+        /**
+         * Number of minutes since the start of the hour.
          * Valid range 0 to 59.
-         * */
+         */
         uint8_t  minutes;
-        /* Number of seconds since the start of the minute.
+        /**
+         * Number of seconds since the start of the minute.
          * Valid range 0 to 59.
-         * */
+         */
         uint8_t  seconds;
-        /*
-         * */
+        /**
+         * Days of a seven-day week as specified in ISO 8601.
+         * Valid range from Monday (1) to Sunday (7)
+         */
         uint8_t  weekday;
-        /* Reason(s) for adjusting time.
-         * */
+        /**
+         * The number of 1/25 fractions of a second.
+         * Valid range 0-255
+         */
         uint8_t  fractions256;
-        uint8_t  adjustReason;
+        /**
+         * Reason(s) for adjusting the time.
+         */
+        uint8_t  adjust_reason;
     };
 
     struct EventHandler {
         /**
-         * On current time written
-         *
          * This function is called if the current time characteristic is changed by the client
          */
-        virtual void on_current_time_written(time_t current_time) { }
+        virtual void on_current_time_changed(time_t current_time) { }
     };
 
     /**
-     * Constructor
+     * Initialize the internal BLE object to @p ble and configure the current time characteristic
+     * with the appropriate UUID.
      *
-     * @param ble
+     * @param ble BLE object to host the current time service
+     *
+     * @attention The Initializer must be called after instantiating a current time service.
      */
     CurrentTimeService(BLE &ble);
 
-    /**
-     * Destructor
-     */
     ~CurrentTimeService();
 
     CurrentTimeService(const CurrentTimeService&) = delete;
     CurrentTimeService &operator=(const CurrentTimeService&) = delete;
 
     /**
-     * Initializer
+     * Set the onCurrentTimeRead() and onCurrentTimeWritten() functions as the read authorization callback
+     * and write authorization callback, respectively for the current time characteristic.
+     * Add the current time service to the BLE device.
      *
-     * @return
+     * @return BLE_ERROR_NONE if the service was successfully added.
      */
     ble_error_t init();
 
     /**
-     * Get time
+    * Set the event handler to handle events raised by the current time service.
+    *
+    * @param handler EventHandler object.
+    */
+    void set_event_handler(EventHandler *handler);
+
+    /**
+     * Get the time in seconds since 00:00 January 1, 1970 plus a configurable offset.
      *
-     * @return
+     * @return Time in seconds.
      */
     time_t get_time();
 
     /**
+     * Set the time offset, i.e. the time in seconds beyond Epoch time.
      *
-     * @param handler
+     * @param host_time Time in seconds according to your host.
+     *
      */
-    void set_event_handler(EventHandler *handler);
+    void set_time(time_t host_time);
 
     /**
-     * Set time
+     * Check all fields of the current time object.
      *
-     * @param new_time
-     */
-    void set_time(time_t new_time);
-
-    /**
-     * Validate all fields of CurrentTime struct
-     *
-     * @return
+     * @return False, if any of the fields are out of range; otherwise, true.
      */
     bool current_time_is_valid();
 
@@ -155,4 +172,4 @@ private:
 
 #endif // BLE_FEATURE_GATT_SERVER
 
-#endif // BLE_CURRENT_TIME_SERVICE_H
+#endif // CURRENT_TIME_SERVICE_H
