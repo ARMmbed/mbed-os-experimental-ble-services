@@ -20,8 +20,11 @@
 #define CURRENT_TIME_CHAR_VALUE_SIZE 10
 #define DATA_FIELD_IGNORED 0x80
 
-CurrentTimeService::CurrentTimeService(BLE &ble) :
+using namespace std::literals::chrono_literals;
+
+CurrentTimeService::CurrentTimeService(BLE &ble, events::EventQueue &event_queue) :
     _ble(ble),
+    _event_queue(event_queue),
     _current_time_char(GattCharacteristic::UUID_CURRENT_TIME_CHAR, &_current_time)
 {
 }
@@ -36,6 +39,8 @@ ble_error_t CurrentTimeService::init()
 
     ble_error_t bleError = _ble.gattServer().addService(currentTimeService);
 
+    start_periodic_time_update();
+
     MBED_STATIC_ASSERT(sizeof(_current_time) == CURRENT_TIME_CHAR_VALUE_SIZE, "Current time characteristic value size = 10");
 
     return bleError;
@@ -45,18 +50,60 @@ void CurrentTimeService::set_event_handler(EventHandler *handler) {
     _current_time_handler = handler;
 }
 
-time_t CurrentTimeService::get_time()
+time_t CurrentTimeService::get_time() const
 {
     time_t epoch_time = time(nullptr);
 
     return epoch_time + _time_offset;
 }
 
-void CurrentTimeService::set_time(time_t host_time)
+void CurrentTimeService::set_time(time_t host_time, uint8_t adjust_reason)
 {
     time_t epoch_time = time(nullptr);
 
+    time_t old_time_offset = _time_offset;
     _time_offset = host_time - epoch_time;
+
+    update_current_time_value(adjust_reason, old_time_offset - _time_offset);
+}
+
+void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, time_t time_offset_difference) {
+    time_t local_time = get_time();
+
+    struct tm *local_time_tm = localtime(&local_time);
+
+    CurrentTime current_time(local_time_tm);
+
+    current_time.adjust_reason = adjust_reason;
+
+    bool send_update = true;
+    if ((current_time.adjust_reason & (MANUAL_TIME_UPDATE | CHANGE_OF_TIME_ZONE | CHANGE_OF_DST)) == 0) {
+        if (timer.elapsed_time() < 15min) {
+            if (std::abs(time_offset_difference) <= 1) {
+                send_update = false;
+            }
+        }
+    }
+
+    if (send_update) {
+        _ble.gattServer().write(_current_time_char.getValueHandle(),
+                                reinterpret_cast<const uint8_t *>(&current_time),
+                                CURRENT_TIME_CHAR_VALUE_SIZE);
+
+        timer.reset();
+        timer.start();
+    }
+
+    start_periodic_time_update();
+}
+
+void CurrentTimeService::start_periodic_time_update() {
+    if (_event_queue_handle == 0) {
+        _event_queue_handle = _event_queue.call_in(15min, [this] {
+            _event_queue_handle = 0;
+            update_current_time_value(EXTERNAL_REFERENCE_TIME_UPDATE);
+        });
+    }
 }
 
 void CurrentTimeService::onCurrentTimeRead(GattReadAuthCallbackParams *read_request)
@@ -65,7 +112,6 @@ void CurrentTimeService::onCurrentTimeRead(GattReadAuthCallbackParams *read_requ
     CurrentTime local_current_time(localtime(&local_time));
 
     if (local_current_time.valid()) {
-        // copy into local buffer for current time
         _current_time = local_current_time;
         read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
         read_request->len  = CURRENT_TIME_CHAR_VALUE_SIZE;
@@ -79,24 +125,21 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 {
     CurrentTime input_time(write_request->data);
 
-    // Validate data in input
     if (!input_time.valid()) {
         write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_RANGE;
         return;
     }
 
-    // report error for fields not handled
     if (input_time.fractions256 || input_time.adjust_reason) {
         write_request->authorizationReply = (GattAuthCallbackReply_t) DATA_FIELD_IGNORED;
         return;
     }
 
-    // Process time in input, set it and report the change in the event handler
     struct tm remote_time_tm{};
     input_time.to_tm(&remote_time_tm);
     time_t remote_time = mktime(&remote_time_tm);
 
-    set_time(remote_time);
+    set_time(remote_time, MANUAL_TIME_UPDATE);
 
     if (_current_time_handler) {
         _current_time_handler->on_current_time_changed(remote_time);
@@ -108,34 +151,34 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 CurrentTimeService::CurrentTime::CurrentTime(const uint8_t *data)
 {
     // FIXME: 2bit transmitted in little endian
-    year    = *data | (*(data + 1) << 8);
-    month   = *data++;
-    day     = *data++;
-    hours   = *data++;
-    minutes = *data++;
-    seconds = *data++;
-    weekday = *data++;
-    fractions256 = *data++;
+    year          = *data | (*(data + 1) << 8);
+    month         = *data++;
+    day           = *data++;
+    hours         = *data++;
+    minutes       = *data++;
+    seconds       = *data++;
+    weekday       = *data++;
+    fractions256  = *data++;
     adjust_reason = *data;
 }
 
 CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
 {
     // FIXME: tm_year should be coded in little endian
-    year = (local_time_tm->tm_year + 1900);
-    month = local_time_tm->tm_mon  + 1;
-    day =  local_time_tm->tm_mday;
-    hours =  local_time_tm->tm_hour;
-    minutes =  local_time_tm->tm_min;
-    seconds =  local_time_tm->tm_sec;
+    year          = (local_time_tm->tm_year + 1900);
+    month         = local_time_tm->tm_mon  + 1;
+    day           =  local_time_tm->tm_mday;
+    hours         =  local_time_tm->tm_hour;
+    minutes       =  local_time_tm->tm_min;
+    seconds       =  local_time_tm->tm_sec;
     /*
      * The tm_wday field of a tm struct means days since Sunday (0-6)
      * However, the weekday field of a CurrentTime struct means Mon-Sun (1-7)
      * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
      * Otherwise, the fields signify the same days and no correction is needed
      * */
-    weekday = local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
-    fractions256 = 0;
+    weekday       = local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
+    fractions256  = 0;
     adjust_reason = 0;
 }
 

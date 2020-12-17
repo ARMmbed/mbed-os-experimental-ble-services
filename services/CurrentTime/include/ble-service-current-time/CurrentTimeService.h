@@ -24,6 +24,7 @@
 #include "ble/Gap.h"
 #include "events/EventQueue.h"
 #include "mbed_rtc_time.h"
+#include "Timer.h"
 
 #include <ctime>
 
@@ -43,6 +44,13 @@
  */
 class CurrentTimeService {
 public:
+    mbed::Timer timer;
+
+    const uint8_t MANUAL_TIME_UPDATE             = 1 << 0;
+    const uint8_t EXTERNAL_REFERENCE_TIME_UPDATE = 1 << 1;
+    const uint8_t CHANGE_OF_TIME_ZONE            = 1 << 2;
+    const uint8_t CHANGE_OF_DST                  = 1 << 3;
+
     struct EventHandler {
         /**
          * This function is called if the current time characteristic is changed by the client
@@ -58,7 +66,7 @@ public:
      *
      * @attention The Initializer must be called after instantiating a current time service.
      */
-    CurrentTimeService(BLE &ble);
+    CurrentTimeService(BLE &ble, events::EventQueue &event_queue);
 
     ~CurrentTimeService() = default;
 
@@ -92,14 +100,19 @@ public:
      * Set the time offset, i.e. the time in seconds beyond Epoch time.
      *
      * @param host_time Time in seconds according to your host.
-     *
+     * @param adjust_reason
      */
-    void set_time(time_t host_time);
+    void set_time(time_t host_time, uint8_t adjust_reason);
+
 
 private:
     void onCurrentTimeRead(GattReadAuthCallbackParams *read_request);
 
     void onCurrentTimeWritten(GattWriteAuthCallbackParams *write_request);
+
+    void update_current_time_value(const uint8_t adjust_reason, time_t time_offset_difference = 0);
+
+    void start_periodic_time_update();
 
 private:
     MBED_PACKED(struct) CurrentTime {
@@ -159,11 +172,15 @@ private:
     };
 
     BLE &_ble;
+    events::EventQueue &_event_queue;
 
     CurrentTime _current_time;
     ReadWriteGattCharacteristic<CurrentTime> _current_time_char;
     time_t _time_offset = 0;
     EventHandler *_current_time_handler = nullptr;
+    int _event_queue_handle = 0;
+
+    time_t get_time() const;
 };
 
 #endif // BLE_FEATURE_GATT_SERVER
