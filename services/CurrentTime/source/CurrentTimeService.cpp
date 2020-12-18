@@ -79,7 +79,7 @@ void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, 
     bool send_update = true;
     if ((current_time.adjust_reason & (MANUAL_TIME_UPDATE | CHANGE_OF_TIME_ZONE | CHANGE_OF_DST)) == 0) {
         if (timer.elapsed_time() < 15min) {
-            if (std::abs(time_offset_difference) <= 1) {
+            if (std::abs(time_offset_difference) <= 60) {
                 send_update = false;
             }
         }
@@ -92,6 +92,11 @@ void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, 
 
         timer.reset();
         timer.start();
+
+        if (_event_queue_handle != 0) {
+            _event_queue.cancel(_event_queue_handle);
+            _event_queue_handle  = 0;
+        }
     }
 
     start_periodic_time_update();
@@ -130,22 +135,21 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
         return;
     }
 
-    if (input_time.fractions256 || input_time.adjust_reason) {
-        write_request->authorizationReply = (GattAuthCallbackReply_t) DATA_FIELD_IGNORED;
-        return;
-    }
-
     struct tm remote_time_tm{};
     input_time.to_tm(&remote_time_tm);
     time_t remote_time = mktime(&remote_time_tm);
 
-    set_time(remote_time, MANUAL_TIME_UPDATE);
+    set_time(remote_time, input_time.adjust_reason);
 
     if (_current_time_handler) {
-        _current_time_handler->on_current_time_changed(remote_time);
+        _current_time_handler->on_current_time_changed(remote_time, input_time.adjust_reason);
     }
 
-    write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    if (input_time.fractions256) {
+        write_request->authorizationReply = (GattAuthCallbackReply_t) DATA_FIELD_IGNORED;
+    } else {
+        write_request->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
+    }
 }
 
 CurrentTimeService::CurrentTime::CurrentTime(const uint8_t *data)
@@ -166,7 +170,7 @@ CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
 {
     // FIXME: tm_year should be coded in little endian
     year          = (local_time_tm->tm_year + 1900);
-    month         = local_time_tm->tm_mon  + 1;
+    month         =  local_time_tm->tm_mon  + 1;
     day           =  local_time_tm->tm_mday;
     hours         =  local_time_tm->tm_hour;
     minutes       =  local_time_tm->tm_min;
@@ -177,9 +181,9 @@ CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
      * So, if tm_wday = 0, i.e. Sunday, the correct value for weekday is 7
      * Otherwise, the fields signify the same days and no correction is needed
      * */
-    weekday       = local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
-    fractions256  = 0;
-    adjust_reason = 0;
+    weekday       =  local_time_tm->tm_wday == 0 ? 7 : local_time_tm ->tm_wday;
+    fractions256  =  0;
+    adjust_reason =  0;
 }
 
 
@@ -216,7 +220,7 @@ bool CurrentTimeService::CurrentTime::to_tm(struct tm * remote_time_tm)
         return false;
     }
 
-    remote_time_tm->tm_year  =  year - 1900;
+    remote_time_tm->tm_year  =  year  - 1900;
     remote_time_tm->tm_mon   =  month - 1;
     remote_time_tm->tm_mday  =  day;
     remote_time_tm->tm_hour  =  hours;

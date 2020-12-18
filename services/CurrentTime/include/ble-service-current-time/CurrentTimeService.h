@@ -35,7 +35,7 @@
  * The current time service allows a BLE device to expose date and time information to other BLE devices.
  *
  * @par usage
- * The on_current_time_changed() event handler should overridden by your application
+ * The on_current_time_changed() event handler should be overridden by your application
  *
  * @note The specification for the current time service can be found here:
  * https://www.bluetooth.com/specifications/gatt
@@ -44,18 +44,16 @@
  */
 class CurrentTimeService {
 public:
-    mbed::Timer timer;
-
-    const uint8_t MANUAL_TIME_UPDATE             = 1 << 0;
-    const uint8_t EXTERNAL_REFERENCE_TIME_UPDATE = 1 << 1;
-    const uint8_t CHANGE_OF_TIME_ZONE            = 1 << 2;
-    const uint8_t CHANGE_OF_DST                  = 1 << 3;
+    static const uint8_t MANUAL_TIME_UPDATE             = 1 << 0;
+    static const uint8_t EXTERNAL_REFERENCE_TIME_UPDATE = 1 << 1;
+    static const uint8_t CHANGE_OF_TIME_ZONE            = 1 << 2;
+    static const uint8_t CHANGE_OF_DST                  = 1 << 3;
 
     struct EventHandler {
         /**
          * This function is called if the current time characteristic is changed by the client
          */
-        virtual void on_current_time_changed(time_t current_time) { }
+        virtual void on_current_time_changed(time_t current_time, uint8_t adjust_reason) { }
     };
 
     /**
@@ -94,13 +92,13 @@ public:
      *
      * @return Time in seconds.
      */
-    time_t get_time();
+    time_t get_time() const;
 
     /**
      * Set the time offset, i.e. the time in seconds beyond Epoch time.
      *
      * @param host_time Time in seconds according to your host.
-     * @param adjust_reason
+     * @param adjust_reason Reason for setting the time.
      */
     void set_time(time_t host_time, uint8_t adjust_reason);
 
@@ -110,11 +108,13 @@ private:
 
     void onCurrentTimeWritten(GattWriteAuthCallbackParams *write_request);
 
-    void update_current_time_value(const uint8_t adjust_reason, time_t time_offset_difference = 0);
+    void update_current_time_value(uint8_t adjust_reason, time_t time_offset_difference = 0);
 
     void start_periodic_time_update();
 
 private:
+    mbed::Timer timer;
+
     MBED_PACKED(struct) CurrentTime {
         CurrentTime() = default;
 
@@ -179,8 +179,6 @@ private:
     time_t _time_offset = 0;
     EventHandler *_current_time_handler = nullptr;
     int _event_queue_handle = 0;
-
-    time_t get_time() const;
 };
 
 #endif // BLE_FEATURE_GATT_SERVER
