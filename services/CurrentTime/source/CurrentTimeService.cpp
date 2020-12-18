@@ -103,7 +103,6 @@ void CurrentTimeService::onCurrentTimeRead(GattReadAuthCallbackParams *read_requ
     time_t local_time = get_time();
     CurrentTime local_current_time(localtime(&local_time));
 
-
     if (local_current_time.valid()) {
         _current_time = local_current_time;
         read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
@@ -120,6 +119,7 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 
     if (write_request->len != CURRENT_TIME_CHAR_VALUE_SIZE) {
         write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_INVALID_ATTRIBUTE_VALUE_LENGTH;
+        return;
     }
 
     if (!input_time.valid()) {
@@ -176,7 +176,6 @@ CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
     fractions256  =  0;
     adjust_reason =  0;
 }
-
 
 bool CurrentTimeService::CurrentTime::valid()
 {
