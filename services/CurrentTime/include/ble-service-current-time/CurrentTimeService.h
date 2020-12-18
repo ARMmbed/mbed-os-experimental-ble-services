@@ -26,7 +26,6 @@
 #include "mbed_rtc_time.h"
 #include "Timer.h"
 
-#include <chrono>
 #include <ctime>
 
 /**
@@ -101,10 +100,11 @@ public:
      * Set the time offset, i.e. the time in seconds beyond Epoch time.
      *
      * @param host_time Time in seconds according to your host.
-     * @param adjust_reason Reason for setting the time.
+     * @param adjust_reason Bitmask using a combination of MANUAL_TIME_UPDATE, EXTERNAL_REFERENCE_TIME_UPDATE,
+     * CHANGE_OF_TIME_ZONE and CHANGE_OF_DST representing the reason for setting the time.
      */
     void set_time(time_t host_time, uint8_t adjust_reason);
-    
+
 private:
     void onCurrentTimeRead(GattReadAuthCallbackParams *read_request);
 
