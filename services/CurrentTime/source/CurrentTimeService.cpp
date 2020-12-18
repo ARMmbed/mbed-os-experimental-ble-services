@@ -118,6 +118,10 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 {
     CurrentTime input_time(write_request->data);
 
+    if (write_request->len != CURRENT_TIME_CHAR_VALUE_SIZE) {
+        write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_INVALID_ATTRIBUTE_VALUE_LENGTH;
+    }
+
     if (!input_time.valid()) {
         write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_RANGE;
         return;
@@ -143,6 +147,7 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 CurrentTimeService::CurrentTime::CurrentTime(const uint8_t *data)
 {
     year          = *data | (*(data + 1) << 8);
+    data += 2;
     month         = *data++;
     day           = *data++;
     hours         = *data++;
