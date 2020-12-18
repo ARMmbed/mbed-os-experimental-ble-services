@@ -26,6 +26,7 @@
 #include "mbed_rtc_time.h"
 #include "Timer.h"
 
+#include <chrono>
 #include <ctime>
 
 /**
@@ -48,6 +49,8 @@ public:
     static const uint8_t EXTERNAL_REFERENCE_TIME_UPDATE = 1 << 1;
     static const uint8_t CHANGE_OF_TIME_ZONE            = 1 << 2;
     static const uint8_t CHANGE_OF_DST                  = 1 << 3;
+
+    static constexpr std::chrono::seconds UPDATE_TIME_PERIOD = std::chrono::seconds(60);
 
     struct EventHandler {
         /**
@@ -101,20 +104,17 @@ public:
      * @param adjust_reason Reason for setting the time.
      */
     void set_time(time_t host_time, uint8_t adjust_reason);
-
-
+    
 private:
     void onCurrentTimeRead(GattReadAuthCallbackParams *read_request);
 
     void onCurrentTimeWritten(GattWriteAuthCallbackParams *write_request);
 
-    void update_current_time_value(uint8_t adjust_reason, time_t time_offset_difference = 0);
+    void update_current_time_value(uint8_t adjust_reason);
 
     void start_periodic_time_update();
 
 private:
-    mbed::Timer timer;
-
     MBED_PACKED(struct) CurrentTime {
         CurrentTime() = default;
 

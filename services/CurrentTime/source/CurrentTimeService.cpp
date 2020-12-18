@@ -22,6 +22,8 @@
 
 using namespace std::literals::chrono_literals;
 
+constexpr std::chrono::seconds CurrentTimeService::UPDATE_TIME_PERIOD;
+
 CurrentTimeService::CurrentTimeService(BLE &ble, events::EventQueue &event_queue) :
     _ble(ble),
     _event_queue(event_queue),
@@ -61,13 +63,12 @@ void CurrentTimeService::set_time(time_t host_time, uint8_t adjust_reason)
 {
     time_t epoch_time = time(nullptr);
 
-    time_t old_time_offset = _time_offset;
     _time_offset = host_time - epoch_time;
 
-    update_current_time_value(adjust_reason, old_time_offset - _time_offset);
+    update_current_time_value(adjust_reason);
 }
 
-void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, time_t time_offset_difference) {
+void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason) {
     time_t local_time = get_time();
 
     struct tm *local_time_tm = localtime(&local_time);
@@ -76,27 +77,13 @@ void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, 
 
     current_time.adjust_reason = adjust_reason;
 
-    bool send_update = true;
-    if ((current_time.adjust_reason & (MANUAL_TIME_UPDATE | CHANGE_OF_TIME_ZONE | CHANGE_OF_DST)) == 0) {
-        if (timer.elapsed_time() < 15min) {
-            if (std::abs(time_offset_difference) <= 60) {
-                send_update = false;
-            }
-        }
-    }
+    _ble.gattServer().write(_current_time_char.getValueHandle(),
+                            reinterpret_cast<const uint8_t *>(&current_time),
+                            CURRENT_TIME_CHAR_VALUE_SIZE);
 
-    if (send_update) {
-        _ble.gattServer().write(_current_time_char.getValueHandle(),
-                                reinterpret_cast<const uint8_t *>(&current_time),
-                                CURRENT_TIME_CHAR_VALUE_SIZE);
-
-        timer.reset();
-        timer.start();
-
-        if (_event_queue_handle != 0) {
-            _event_queue.cancel(_event_queue_handle);
-            _event_queue_handle  = 0;
-        }
+    if (_event_queue_handle != 0) {
+        _event_queue.cancel(_event_queue_handle);
+        _event_queue_handle  = 0;
     }
 
     start_periodic_time_update();
@@ -104,7 +91,7 @@ void CurrentTimeService::update_current_time_value(const uint8_t adjust_reason, 
 
 void CurrentTimeService::start_periodic_time_update() {
     if (_event_queue_handle == 0) {
-        _event_queue_handle = _event_queue.call_in(15min, [this] {
+        _event_queue_handle = _event_queue.call_in(UPDATE_TIME_PERIOD, [this] {
             _event_queue_handle = 0;
             update_current_time_value(EXTERNAL_REFERENCE_TIME_UPDATE);
         });
