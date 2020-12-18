@@ -101,7 +101,7 @@ public:
      *
      * @param host_time Time in seconds according to your host.
      * @param adjust_reason Bitmask using a combination of MANUAL_TIME_UPDATE, EXTERNAL_REFERENCE_TIME_UPDATE,
-     * CHANGE_OF_TIME_ZONE and CHANGE_OF_DST representing the reason for setting the time.
+     * CHANGE_OF_TIME_ZONE and CHANGE_OF_DST representing the reason for setting the time or zero if year is unknown.
      */
     void set_time(time_t host_time, uint8_t adjust_reason);
 
@@ -125,11 +125,13 @@ private:
 
         bool to_tm(struct tm * remote_time_tm);
 
+        /**
+         * @return Year in host byte order
+         *
+         * @note Function should be updated once endianness utilities are added to Mbed OS
+         */
         uint16_t get_year() {
-            uint8_t *year_data  = (uint8_t *)&year;
-            uint16_t year_value = *year_data;
-            year_value |= *year_data << 8;
-            return year_value;
+            return year;
         }
 
         /**
