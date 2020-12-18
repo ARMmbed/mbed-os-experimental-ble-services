@@ -125,6 +125,13 @@ private:
 
         bool to_tm(struct tm * remote_time_tm);
 
+        uint16_t get_year() {
+            uint8_t *year_data  = (uint8_t *)&year;
+            uint16_t year_value = *year_data;
+            year_value |= *year_data << 8;
+            return year_value;
+        }
+
         /**
          * Year as defined by the Gregorian calendar.
          * Valid range 1582 to 9999.

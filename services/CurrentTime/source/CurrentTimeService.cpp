@@ -103,6 +103,7 @@ void CurrentTimeService::onCurrentTimeRead(GattReadAuthCallbackParams *read_requ
     time_t local_time = get_time();
     CurrentTime local_current_time(localtime(&local_time));
 
+
     if (local_current_time.valid()) {
         _current_time = local_current_time;
         read_request->data = reinterpret_cast<uint8_t *>(&_current_time);
@@ -141,7 +142,6 @@ void CurrentTimeService::onCurrentTimeWritten(GattWriteAuthCallbackParams *write
 
 CurrentTimeService::CurrentTime::CurrentTime(const uint8_t *data)
 {
-    // FIXME: 2bit transmitted in little endian
     year          = *data | (*(data + 1) << 8);
     month         = *data++;
     day           = *data++;
@@ -155,7 +155,6 @@ CurrentTimeService::CurrentTime::CurrentTime(const uint8_t *data)
 
 CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
 {
-    // FIXME: tm_year should be coded in little endian
     year          = (local_time_tm->tm_year + 1900);
     month         =  local_time_tm->tm_mon  + 1;
     day           =  local_time_tm->tm_mday;
@@ -176,7 +175,7 @@ CurrentTimeService::CurrentTime::CurrentTime(const struct tm *local_time_tm)
 
 bool CurrentTimeService::CurrentTime::valid()
 {
-    if ((year    < 1582) || (year    > 9999)) {
+    if ((get_year() < 1582) || (get_year() > 9999)) {
         return false;
     }
     if ((month   <    1) || (month   >   12)) {
@@ -207,7 +206,7 @@ bool CurrentTimeService::CurrentTime::to_tm(struct tm * remote_time_tm)
         return false;
     }
 
-    remote_time_tm->tm_year  =  year  - 1900;
+    remote_time_tm->tm_year  =  get_year() - 1900;
     remote_time_tm->tm_mon   =  month - 1;
     remote_time_tm->tm_mday  =  day;
     remote_time_tm->tm_hour  =  hours;
