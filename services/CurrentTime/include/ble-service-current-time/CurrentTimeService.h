@@ -101,7 +101,7 @@ public:
      *
      * @param host_time Time in seconds according to your host.
      * @param adjust_reason Bitmask using a combination of MANUAL_TIME_UPDATE, EXTERNAL_REFERENCE_TIME_UPDATE,
-     * CHANGE_OF_TIME_ZONE and CHANGE_OF_DST representing the reason for setting the time or zero if year is unknown.
+     * CHANGE_OF_TIME_ZONE and CHANGE_OF_DST representing the reason for setting the time or zero if reason is unknown.
      */
     void set_time(time_t host_time, uint8_t adjust_reason);
 
