@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "CurrentTimeService.h"
+#include "ble-service-current-time/CurrentTimeService.h"
 
 #define CURRENT_TIME_CHAR_VALUE_SIZE 10
 #define DATA_FIELD_IGNORED 0x80
@@ -27,7 +27,11 @@ constexpr std::chrono::seconds CurrentTimeService::UPDATE_TIME_PERIOD;
 CurrentTimeService::CurrentTimeService(BLE &ble, events::EventQueue &event_queue) :
     _ble(ble),
     _event_queue(event_queue),
-    _current_time_char(GattCharacteristic::UUID_CURRENT_TIME_CHAR, &_current_time)
+    _current_time_char(
+        GattCharacteristic::UUID_CURRENT_TIME_CHAR,
+        &_current_time,
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY
+    )
 {
 }
 
