@@ -21,6 +21,15 @@ https://github.com/ARMmbed/mbed-os-experimental-ble-services
 
 Call `mbed deploy`. This will check out this repository into your project.
 
+If you're overriding the `requires` option (when using baremetal for example), you'll need to add the library
+that contains the service you want to use to your application.
+
+For example, if you want to use the DFU service, add it in your `mbed_app.json` here:
+
+```
+    "requires": [ (...), "ble-service-DFU" ]
+```
+
 ### License and contributions
 
 The software is provided under Apache-2.0 license. Contributions to this project are accepted under the same license.
