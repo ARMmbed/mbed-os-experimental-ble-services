@@ -18,9 +18,10 @@
 #ifndef CURRENT_TIME_SERVICE_H
 #define CURRENT_TIME_SERVICE_H
 
+#include "ble/BLE.h"
+
 #ifdef BLE_FEATURE_GATT_SERVER
 
-#include "ble/BLE.h"
 #include "ble/Gap.h"
 #include "events/EventQueue.h"
 #include "mbed_rtc_time.h"
