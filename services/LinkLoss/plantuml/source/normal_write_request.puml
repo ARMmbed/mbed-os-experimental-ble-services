@@ -1,0 +1,20 @@
+@startuml
+
+participant LinkLossService as LLS
+participant BT_Stack as BTS
+
+== Link Loss Service Constructed ==
+
+LLS <- BTS : onDataWritten(write_request)
+activate LLS
+note left
+write_request
+----
+0x00 <= data <= 0x02
+authorizationReply=SUCCESS
+end note
+
+LLS -> LLS : set_alert_level(write_request->data)
+deactivate LLS
+
+@enduml

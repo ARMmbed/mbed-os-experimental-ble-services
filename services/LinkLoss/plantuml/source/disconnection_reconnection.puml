@@ -1,0 +1,42 @@
+@startuml
+
+participant Application as APP
+participant LinkLossService as LLS
+participant BT_Stack as BTS
+participant EventQueue as EQ
+
+== Link Loss Service Constructed ==
+
+LLS <- BTS : onDisconnectionComplete(event)
+activate LLS
+
+LLS -> LLS : get_alert_level()
+note left
+ret: level = HIGH_ALERT or MILD_ALERT
+end note
+
+APP <- LLS : on_alert_requested(level)
+
+LLS -> EQ : call_in(t, stop_alert())
+note left
+t: alert timeout in ms > 0
+end note
+activate EQ
+
+LLS <- BTS : onConnectionComplete(event)
+
+LLS -> LLS : stop_alert()
+note left
+Called due to reconnection
+end note
+
+LLS -> EQ : cancel(x)
+note left
+0 < x
+end note
+deactivate EQ
+
+LLS -> APP : on_alert_end()
+deactivate LLS
+
+@enduml
