@@ -107,7 +107,9 @@ endif(VALGRIND)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUNITTEST")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUNITTEST")
 
-## add stubs
+## add mbed-os cmakelists
 add_subdirectory(${MBED_PATH}/UNITTESTS/stubs)
-## add unit tests
+add_subdirectory(${MBED_PATH}/UNITTESTS/fakes)
+
+## all directories here will be added
 add_subdirectory(UNITTESTS)
