@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#if BLE_FEATURE_GATT_SERVER
-
 #include "ble-service-link-loss/LinkLossService.h"
+
+#if BLE_FEATURE_GATT_SERVER
 
 LinkLossService::LinkLossService(BLE &ble, events::EventQueue &event_queue, ChainableGapEventHandler &chainable_gap_event_handler) :
     _ble(ble),
