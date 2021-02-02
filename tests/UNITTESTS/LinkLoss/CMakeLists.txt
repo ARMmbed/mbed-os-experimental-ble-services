@@ -6,15 +6,24 @@ set(TEST_NAME ble-service-link-loss-unittest)
 
 add_executable(${TEST_NAME})
 
+target_include_directories(${TEST_NAME}
+    PRIVATE
+        .
+        ${SERVICES_PATH}/LinkLoss/include
+)
+
 target_sources(${TEST_NAME}
     PRIVATE
         test_LinkLoss.cpp
+        ${SERVICES_PATH}/LinkLoss/source/LinkLossService.cpp
 )
 
 target_link_libraries(${TEST_NAME}
     PRIVATE
-        mbed-os-stubs-headers
-        mbed-os-ble-fake
+        mbed-os-fakes-ble
+        mbed-os-fakes-event-queue
+        mbed-os-headers-base
+        mbed-os-headers-platform
         gmock_main
 )
 
