@@ -6,15 +6,26 @@ set(TEST_NAME ble-service-current-time-unittest)
 
 add_executable(${TEST_NAME})
 
+target_include_directories(${TEST_NAME}
+    PRIVATE
+        .
+        ${SERVICES_PATH}/CurrentTime/include
+)
+
 target_sources(${TEST_NAME}
     PRIVATE
         test_CurrentTime.cpp
+        ${SERVICES_PATH}/CurrentTime/source/CurrentTimeService.cpp
 )
 
 target_link_libraries(${TEST_NAME}
     PRIVATE
-        mbed-os-stubs-headers
-        mbed-os-ble-fake
+        mbed-os-fakes-ble
+        mbed-os-fakes-event-queue
+        mbed-os-headers-base
+        mbed-os-headers-platform
+        mbed-os-headers-drivers
+        mbed-os-headers-hal
         gmock_main
 )
 
