@@ -105,8 +105,10 @@ public:
      *
      * Set the onDataWritten() function as the write authorization callback for the alert level characteristic.
      * Add the link loss service to the BLE device and chain of GAP event handlers.
+     *
+     * @return BLE_ERROR_NONE if the initialisation process completed successfully.
      */
-    void init();
+    ble_error_t init();
 
     /**
      * Set event handler
