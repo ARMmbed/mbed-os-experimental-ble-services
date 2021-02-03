@@ -107,8 +107,7 @@ void LinkLossService::onDataWritten(GattWriteAuthCallbackParams *write_request)
     if (level <= (uint8_t)(AlertLevel::HIGH_ALERT)) {
         set_alert_level((AlertLevel) level);
     } else {
-        // The alert level is out of range
-        write_request->authorizationReply = static_cast<GattAuthCallbackReply_t>(0xFF);
+        write_request->authorizationReply = GattAuthCallbackReply_t::AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_RANGE;
     }
 }
 
