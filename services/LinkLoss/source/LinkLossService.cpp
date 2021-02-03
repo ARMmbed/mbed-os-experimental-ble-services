@@ -32,7 +32,7 @@ LinkLossService::~LinkLossService()
     _event_queue.cancel(_event_queue_handle);
 }
 
-void LinkLossService::init()
+ble_error_t LinkLossService::init()
 {
     GattCharacteristic *charTable[] = { &_alert_level_char };
     GattService         linkLossService(GattService::UUID_LINK_LOSS_SERVICE, charTable, 1);
@@ -44,6 +44,8 @@ void LinkLossService::init()
     if (error == BLE_ERROR_NONE) {
         _chainable_gap_event_handler.addEventHandler(this);
     }
+
+    return error;
 }
 
 void LinkLossService::set_event_handler(EventHandler* handler)
