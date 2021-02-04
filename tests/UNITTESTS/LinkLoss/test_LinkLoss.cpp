@@ -64,5 +64,4 @@ TEST_F(TestLinkLoss, reset)
 
     /* remember you must call this at the end of the test if you have any expectations set */
     ble::reset_mocks();
-    EXPECT_TRUE(false);
 }
