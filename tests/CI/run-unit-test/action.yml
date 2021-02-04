@@ -1,0 +1,6 @@
+name: "Run unit tests"
+description: "this relies on the shell script unittests.sh to run the tests"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
