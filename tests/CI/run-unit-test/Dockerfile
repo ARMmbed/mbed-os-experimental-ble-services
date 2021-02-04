@@ -1,3 +1,2 @@
 FROM mbedos/mbed-os-env:latest
-WORKDIR tests/
-CMD ["ls", "-la"]
+ENTRYPOINT ["tests/unittests.sh"]

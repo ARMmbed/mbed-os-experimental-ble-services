@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# set pwd to script location
+cd "$( dirname "$0" )"
+
 # we need stubs from mbed-os
 if [ -d "mbed-os" ]
 then
