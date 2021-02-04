@@ -1,8 +1,8 @@
-name: unittests
+name: CI
 on: push
 jobs:
   build:
-    name: Hello world action
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
