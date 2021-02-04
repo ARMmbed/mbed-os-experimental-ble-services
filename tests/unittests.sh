@@ -11,4 +11,4 @@ fi
 
 cmake -S . -B cmake_build -GNinja
 cmake --build cmake_build
-cmake --build cmake_build --target test
+CTEST_OUTPUT_ON_FAILURE=TRUE cmake --build cmake_build --target test
