@@ -21,19 +21,13 @@ https://github.com/ARMmbed/mbed-os-experimental-ble-services
 
 Call `mbed deploy`. This will check out this repository into your project.
 
-To use a particular service you will need to now add the library that contains it into your application.
+If you're overriding the `requires` option (when using baremetal for example), you'll need to add the library
+that contains the service you want to use to your application.
 
-Inside your `mbed_app.json` you need to override the `requires` section for your platform.
-Add the name of the library containing the service.
-
-For example, if you want to use the DFU service, add this to your `mbed_app.json`: 
+For example, if you want to use the DFU service, add it in your `mbed_app.json` here:
 
 ```
-    "target_overrides": {
-        "*": {
-            "target.requires": [ "ble-service-DFU" ]
-        },
-    }
+    "requires": [ (...), "ble-service-DFU" ]
 ```
 
 ### License and contributions
