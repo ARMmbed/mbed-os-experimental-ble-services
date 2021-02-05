@@ -18,8 +18,16 @@ To run unittests simply run:
 This will configure and build the tests with Cmake and run the tests.
 
 Unit tests require mbed-os to provide stubs and mocks. A copy of mbed-os will be checked out during the build into
-the tests directory (unless it's already there, you may use a symlink if you already have a checkout of mbed-os).
-This will not be deleted after the run.
+the tests directory unless it's already there (you may use a symlink if you already have a checkout of mbed-os):
+
+```
+tests/
+└── UNITESTS/
+└── mbed-os/
+```
+
+This will not be deleted after the run. If you already have a symlinked copy of mbed-os in this place it will not
+be affected and the unit tests will use it as is.
 
 # Adding a new test
 
