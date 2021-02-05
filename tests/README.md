@@ -1,6 +1,6 @@
 # Testing experimental services
 
-The services provided services are covered by unittests. We use GoogleTest as the testing framework and CTest
+The services provided are covered by unittests. We use GoogleTest as the testing framework and CTest
 as the runner.
 
 When adding a new service please include a unittest suite for your new service in your service PR.
@@ -23,7 +23,7 @@ This will not be deleted after the run.
 
 # Adding a new test
 
-Before or during the development of your service you should add a new unittest to to cover it. This is done by
+Before or during the development of your service you should add a new unittest to cover it. This is done by
 creating a new directory inside [UNITTESTS](./UNITTESTS). CMake will automatically add any directory added there.
 
 Inside the directory you must add a `CMakeLists.txt` file. You may use this template below. Please change the
@@ -84,7 +84,7 @@ The most common ones you might need are `mbed-os-fakes-ble` and `mbed-os-fakes-e
 This library provides a fake BLE implementation that uses mocks instead of real BLE components for `Gap`,
 `GattServer`, `GattClient`, `SecurityManager`.
 
-There is no need to initialise the instance, it is ready to go and can get used just like normal BLE instance:
+There is no need to initialise a fake BLE instance; it is ready to go and can be used just like a normal BLE instance:
 ```
 BLE ble = &BLE::Instance();
 ```
@@ -115,7 +115,7 @@ ble::reset_mocks();
 
 ### mbed-os-fakes-event-queue
 
-This is a fake event queue that doesn't bring in any dependencies from mbed-os. It's API is simplified
+This is a fake event queue that doesn't bring in any dependencies from mbed-os. Its API is simplified
 and it only offers limited functionality.
 
 If you choose to use it you must not also include a library that brings in real headers for the event
@@ -125,4 +125,4 @@ The API calls supported are for simple calls `call`, `call_in` and the `cancel` 
 
 The event queue is not run in real time and must be progressed manually. You may use
 `dispatch(int milliseconds)` and `dispatch_forever()` to process events in the queue. This way you can
-simulate passage of time within your test. 
+simulate the passage of time in your test. 
