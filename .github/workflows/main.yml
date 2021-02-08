@@ -9,5 +9,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: ./tests/CI/run-unit-test
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Unit Tests
+        uses: ./tests/CI/run-unit-test
