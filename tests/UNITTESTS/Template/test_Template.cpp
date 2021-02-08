@@ -17,13 +17,19 @@
 
 #include "gtest/gtest.h"
 
+/* these are real mbed-os headers but the implementation will be provided by mocks */
 #include "ble/BLE.h"
 #include "ble/Gap.h"
 #include "ble/GattServer.h"
 #include "ble/GattClient.h"
 #include "ble/SecurityManager.h"
 
+/* this provides all the ble mocks inside the fake BLE instance */
 #include "ble_mocks.h"
+/* this is a fake event queue that avoids mbed-os dependencies and allows manual dispatch */
+#include "events/EventQueue.h"
+
+using namespace std::chrono_literals;
 
 /* This test does not test anything, you may use it as a template for your unit tests.
  * It shows all the elements you need to use mocks for all the ble APIS. */
@@ -37,9 +43,12 @@ protected:
 
     void TearDown()
     {
+        /* remember you must call this at the end of the test if you have any expectations set */
+        ble::reset_mocks();
     }
 
     BLE* ble;
+    events::EventQueue queue;
 };
 
 TEST_F(TestLinkLoss, reset)
@@ -62,6 +71,17 @@ TEST_F(TestLinkLoss, reset)
     server.reset();
     sm.reset();
 
-    /* remember you must call this at the end of the test if you have any expectations set */
-    ble::reset_mocks();
+    /* you use the fake event queue similarly to the real one */
+    queue.call_in(100ms, [](){ printf("100ms have passed\r\n"); });
+    queue.call([](){ printf("I will be called first\r\n"); });
+    queue.call_in(10ms, [](){ printf("10ms have passed\r\n"); });
+    /* events will be dispatched in the correct order */
+
+    int handle = queue.call([](){ printf("I will not be called\r\n"); });
+    queue.cancel(handle);
+
+    /* you have to dispatch the queue yourself, you can decide how many milliseconds have passed
+     * (call with no arguments to dispatch all events) */
+    queue.dispatch(10);
+    queue.dispatch(90);
 }
