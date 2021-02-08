@@ -16,4 +16,13 @@ fi
 
 cmake -S . -B cmake_build -GNinja
 cmake --build cmake_build
-CTEST_OUTPUT_ON_FAILURE=TRUE cmake --build cmake_build --target test
+
+cd cmake_build
+# normal test
+ctest -V
+# valgrind test
+ctest -D ExperimentalBuild
+ctest -D ExperimentalMemCheck
+
+
+
