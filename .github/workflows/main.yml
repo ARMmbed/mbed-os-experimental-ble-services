@@ -15,6 +15,6 @@ jobs:
         uses: ./tests/CI/run-unit-test
       - name: Uploading coverage result
         uses: actions/upload-artifact@v2
-          with:
-            name: gcovr coverage result
-            path: tests/coverage.html
+        with:
+          name: gcovr coverage result
+          path: tests/coverage.html
