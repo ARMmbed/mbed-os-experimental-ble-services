@@ -14,15 +14,14 @@ else
     git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-tests
 fi
 
-cmake -S . -B cmake_build -GNinja
+cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
 cmake --build cmake_build
 
-cd cmake_build
 # normal test
-ctest -V
-# valgrind test
-ctest -D ExperimentalBuild
-ctest -D ExperimentalMemCheck
-
+(cd cmake_build; ctest -V)
+# valgrind
+(cd cmake_build; ctest -D ExperimentalMemCheck)
+# gcov (only show coverage of services)
+gcovr --html=coverage.html  -f ".*cmake_build/services.*"
 
 
