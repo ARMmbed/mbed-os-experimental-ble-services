@@ -30,6 +30,9 @@
 .idea/ 
 cmake-build-*/
 
+# vscode
+build/
+
 # exporters 
 GettingStarted.html
 
