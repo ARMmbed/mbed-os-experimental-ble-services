@@ -38,13 +38,14 @@ class TestTemplate : public testing::Test {
 protected:
     void SetUp()
     {
+        /* this call uses ble::init_mocks() to initialises the mocks */
         ble = &BLE::Instance();
     }
 
     void TearDown()
     {
         /* remember you must call this at the end of the test if you have any expectations set */
-        ble::reset_mocks();
+        ble::delete_mocks();
     }
 
     BLE* ble;
