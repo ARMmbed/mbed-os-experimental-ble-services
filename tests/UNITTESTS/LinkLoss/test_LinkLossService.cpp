@@ -153,7 +153,7 @@ protected:
 
 TEST_F(TestLinkLossService, constructor)
 {
-    // he link loss service should not be NULL
+    // The link loss service should not be NULL
     ASSERT_TRUE(link_loss_service);
 }
 
