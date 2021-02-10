@@ -93,9 +93,13 @@ This library provides a fake BLE implementation that uses mocks instead of real 
 `GattServer`, `GattClient`, `SecurityManager`.
 
 There is no need to initialise a fake BLE instance; it is ready to go and can be used just like a normal BLE instance:
+
 ```
 BLE ble = &BLE::Instance();
 ```
+
+This call also initialises mocks. Do no cache the BLE instance pointer, or pointer to GAP, GattServer etc. between
+tests. You must get the instance fresh at the start of the test.
 
 You can retrieve all the BLE APIs from the instance just like with a normal one:
 
@@ -106,7 +110,8 @@ GattServer &server = ble->gattServer();
 SecurityManager &sm = ble->securityManager();
 ```
 
-But these are instead google mocks. This means you can set expectations on them. 
+Whenever an API call is made, the implementation will be called. These are replaced in the fake BLE with google mocks.
+This means you can set expectations on them. 
 
 ```
 EXPECT_CALL(ble::gap_mock(), reset());
@@ -118,7 +123,7 @@ The way google test works means that if you set any expectations on your mocks t
 the end of each test. This is done through the fake BLE instance special method:
 
 ```
-ble::reset_mocks();
+ble::delete_mocks();
 ```
 
 ### mbed-os-fakes-event-queue
