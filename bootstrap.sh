@@ -4,6 +4,9 @@ set -e
 # set pwd to script location
 cd "$( dirname "$0" )"
 
+# enter the test folder 
+cd ./tests
+
 # we need stubs from mbed-os
 if [ -d "mbed-os" ]
 then
@@ -13,13 +16,3 @@ else
     # until it's not merged we use my branch
     git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-tests
 fi
-
-cmake -S . -B cmake_build -GNinja
-cmake --build cmake_build
-
-# normal test
-(cd cmake_build; ctest -V)
-# valgrind
-(cd cmake_build; ctest -D ExperimentalMemCheck)
-# gcov (only show coverage of services)
-gcovr --html=coverage.html  -f ".*cmake_build/services.*"
