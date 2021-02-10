@@ -36,6 +36,7 @@ using namespace std::chrono;
 using namespace std::literals::chrono_literals;
 
 using ::testing::Property;
+using ::testing::Values;
 
 struct EventHandlerMock : LinkLossService::EventHandler {
     MOCK_METHOD(void, on_alert_requested, (LinkLossService::AlertLevel), (override));
@@ -53,6 +54,7 @@ protected:
     void SetUp()
     {
         ble = &BLE::Instance();
+        GattServer &server = ble->gattServer();
 
         link_loss_service = std::make_unique<LinkLossService>(*ble, event_queue, chainable_gap_event_handler);
     }
@@ -63,7 +65,8 @@ protected:
     }
 };
 
-class TestLinkLossServiceEvents : public TestLinkLossService {
+class TestLinkLossServiceEvents : public TestLinkLossService,
+                                  public testing::WithParamInterface<LinkLossService::AlertLevel> {
 protected:
     EventHandlerMock event_handler_mock;
 
@@ -150,7 +153,7 @@ protected:
 
 TEST_F(TestLinkLossService, constructor)
 {
-    // The link loss service should not be NULL
+    // he link loss service should not be NULL
     ASSERT_TRUE(link_loss_service);
 }
 
@@ -187,178 +190,6 @@ TEST_F(TestLinkLossService, init)
     ASSERT_TRUE(characteristic.write_cb);
 }
 
-TEST_F(TestLinkLossServiceEvents, connection_no_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "NO ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::NO_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The device should not start alerting since the alert level is "NO ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::NO_ALERT))
-         .Times(0);
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-
-    // The alert should not end due to reconnection since there was no alert to begin with
-    EXPECT_CALL(event_handler_mock, on_alert_end())
-         .Times(0);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-}
-
-TEST_F(TestLinkLossServiceEvents, connection_mild_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "MILD ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::MILD_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);;
-
-    // The device should start alerting with an alert level of "MILD ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::MILD_ALERT))
-            .Times(1);
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-
-    // The alert should end due to reconnection
-    EXPECT_CALL(event_handler_mock, on_alert_end())
-            .Times(1);
-
-    // Get the number of events in the queue before reconnection
-    size_t initial_queue_size = event_queue.size();
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The reconnection should have cancelled the pending timeout
-    EXPECT_EQ(event_queue.size(), initial_queue_size - 1);
-}
-
-TEST_F(TestLinkLossServiceEvents, connection_high_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "HIGH ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::HIGH_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The device should start alerting with an alert level of "HIGH ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::HIGH_ALERT))
-            .Times(1);
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-
-    // The alert should end due to reconnection
-    EXPECT_CALL(event_handler_mock, on_alert_end())
-            .Times(1);
-
-    // Get the number of events in the queue before reconnection
-    size_t initial_queue_size = event_queue.size();
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The reconnection should have cancelled the pending timeout
-    EXPECT_EQ(event_queue.size(), initial_queue_size - 1);
-}
-
-TEST_F(TestLinkLossServiceEvents, disconnection_no_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "NO ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::NO_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The device should not start alerting with an alert level of "NO ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::NO_ALERT))
-         .Times(0);
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-}
-
-TEST_F(TestLinkLossServiceEvents, disconnection_mild_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "MILD ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::MILD_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The device should start alerting with an alert level of "MILD ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::MILD_ALERT))
-         .Times(1);
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-
-    // Dispatch events for 59999 ms
-    event_queue.dispatch(59999);
-
-    // The alert should end in 1 ms due to the alert timeout
-    EXPECT_CALL(event_handler_mock, on_alert_end())
-         .Times(1);
-
-    // Dispatch events for a further 1 ms
-    event_queue.dispatch(1);
-}
-
-TEST_F(TestLinkLossServiceEvents, disconnection_high_alert)
-{
-    // Set the alert timeout to 1 min
-    minutes alert_timeout = minutes(1);
-    link_loss_service->set_alert_timeout(alert_timeout);
-
-    // Set the alert level to "HIGH ALERT"
-    link_loss_service->set_alert_level(LinkLossService::AlertLevel::HIGH_ALERT);
-
-    // Simulate a clean connection event
-    simulate_connection_event(BLE_ERROR_NONE);
-
-    // The device should start alerting with an alert level of "HIGH ALERT"
-    EXPECT_CALL(event_handler_mock, on_alert_requested(LinkLossService::AlertLevel::HIGH_ALERT));
-
-    // Simulate a disconnection event due to connection timeout
-    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
-
-    // Dispatch events for 59999 ms
-    event_queue.dispatch(59999);
-
-    // The alert should end in 1 ms due to the alert timeout
-    EXPECT_CALL(event_handler_mock, on_alert_end())
-         .Times(1);
-
-    // Dispatch events for a further 1 ms
-    event_queue.dispatch(1);
-}
-
 TEST_F(TestLinkLossServiceEvents, disconnection_reconnection)
 {
     // Set the alert timeout to 1 min
@@ -385,7 +216,7 @@ TEST_F(TestLinkLossServiceEvents, disconnection_reconnection)
 
     // The alert should end due to reconnection
     EXPECT_CALL(event_handler_mock, on_alert_end())
-         .Times(1);
+            .Times(1);
 
     // Simulate a clean connection event
     simulate_connection_event(BLE_ERROR_NONE);
@@ -407,7 +238,7 @@ TEST_F(TestLinkLossServiceEvents, disconnection_no_timeout)
     milliseconds alert_timeout = milliseconds (0);
     link_loss_service->set_alert_timeout(alert_timeout);
 
-    // Set the alert level to "HIGH ALERT"
+    // Set the alert level
     link_loss_service->set_alert_level(LinkLossService::AlertLevel::HIGH_ALERT);
 
     // Simulate a clean connection event
@@ -426,42 +257,6 @@ TEST_F(TestLinkLossServiceEvents, disconnection_no_timeout)
     ASSERT_EQ(event_queue.size(), initial_queue_size);
 }
 
-TEST_F(TestLinkLossServiceEvents, data_written_no_alert)
-{
-    const uint8_t data = static_cast<const uint8_t>(LinkLossService::AlertLevel::NO_ALERT);
-    uint16_t len = sizeof(data);
-
-    // Simulate a data written event to set the alert level to "NO ALERT"
-    simulate_data_written_event(&data, len);
-
-    // The alert level should be set to "NO ALERT"
-    ASSERT_EQ(link_loss_service->get_alert_level(), LinkLossService::AlertLevel::NO_ALERT);
-}
-
-TEST_F(TestLinkLossServiceEvents, data_written_mild_alert)
-{
-    const uint8_t data = static_cast<const uint8_t>(LinkLossService::AlertLevel::MILD_ALERT);
-    uint16_t len = sizeof(data);
-
-    // Simulate a data written event to set the alert level to "MILD ALERT"
-    GattAuthCallbackReply_t authorisationReply = simulate_data_written_event(&data, len);
-
-    // The alert level should be set to "MILD ALERT"
-    ASSERT_EQ(link_loss_service->get_alert_level(), LinkLossService::AlertLevel::MILD_ALERT);
-}
-
-TEST_F(TestLinkLossServiceEvents, data_written_high_alert)
-{
-    const uint8_t data = static_cast<const uint8_t>(LinkLossService::AlertLevel::HIGH_ALERT);
-    uint16_t len = sizeof(data);
-
-    // Simulate a data written event to set the alert level to "HIGH ALERT"
-    simulate_data_written_event(&data, len);
-
-    // The alert level should be set to "HIGH ALERT"
-    ASSERT_EQ(link_loss_service->get_alert_level(), LinkLossService::AlertLevel::HIGH_ALERT);
-}
-
 TEST_F(TestLinkLossServiceEvents, data_written_invalid)
 {
     const uint8_t data = static_cast<const uint8_t>(LinkLossService::AlertLevel::HIGH_ALERT) + 1;
@@ -476,3 +271,82 @@ TEST_F(TestLinkLossServiceEvents, data_written_invalid)
     // The write authorisation reply in the write request should be OUT_OF_RANGE
     ASSERT_EQ(authorisationReply, GattAuthCallbackReply_t::AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_RANGE);
 }
+
+TEST_P(TestLinkLossServiceEvents, connection)
+{
+    LinkLossService::AlertLevel alert_level = GetParam();
+
+    milliseconds alert_timeout = milliseconds (60000);
+    link_loss_service->set_alert_timeout(alert_timeout);
+
+    link_loss_service->set_alert_level(alert_level);
+
+    simulate_connection_event(BLE_ERROR_NONE);
+
+    size_t cardinality = 0;
+    if ((alert_level == LinkLossService::AlertLevel::MILD_ALERT) |
+        (alert_level == LinkLossService::AlertLevel::HIGH_ALERT)) {
+        cardinality = 1;
+    }
+
+    EXPECT_CALL(event_handler_mock, on_alert_requested(alert_level))
+         .Times(cardinality);
+
+    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
+
+    size_t initial_event_queue_size = event_queue.size();
+
+    EXPECT_CALL(event_handler_mock, on_alert_end())
+         .Times(cardinality);
+
+    simulate_connection_event(BLE_ERROR_NONE);
+
+    EXPECT_EQ(event_queue.size(), initial_event_queue_size - cardinality);
+}
+
+TEST_P(TestLinkLossServiceEvents, disconnection)
+{
+    LinkLossService::AlertLevel alert_level = GetParam();
+
+    milliseconds alert_timeout = milliseconds(60000);
+    link_loss_service->set_alert_timeout(alert_timeout);
+
+    link_loss_service->set_alert_level(alert_level);
+
+    simulate_connection_event(BLE_ERROR_NONE);
+
+    size_t cardinality = 0;
+    if ((alert_level == LinkLossService::AlertLevel::MILD_ALERT) |
+        (alert_level == LinkLossService::AlertLevel::HIGH_ALERT)) {
+        cardinality = 1;
+    }
+
+    EXPECT_CALL(event_handler_mock, on_alert_requested(alert_level))
+         .Times(cardinality);
+
+    simulate_disconnection_event(disconnection_reason_t::CONNECTION_TIMEOUT);
+
+    event_queue.dispatch(59999);
+
+    EXPECT_CALL(event_handler_mock, on_alert_end())
+         .Times(cardinality);
+
+    event_queue.dispatch(1);
+}
+
+TEST_P(TestLinkLossServiceEvents, data_written)
+{
+    LinkLossService::AlertLevel alert_level = GetParam();
+
+    const uint8_t data = static_cast<const uint8_t>(alert_level);
+    uint16_t len = sizeof(data);
+
+    simulate_data_written_event(&data, len);
+
+    ASSERT_EQ(link_loss_service->get_alert_level(), alert_level);
+}
+
+INSTANTIATE_TEST_SUITE_P(Expected, TestLinkLossServiceEvents,
+                         Values(LinkLossService::AlertLevel::NO_ALERT,
+                                LinkLossService::AlertLevel::MILD_ALERT,
+                                LinkLossService::AlertLevel::HIGH_ALERT));
