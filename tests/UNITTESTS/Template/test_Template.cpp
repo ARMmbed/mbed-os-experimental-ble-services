@@ -34,7 +34,7 @@ using namespace std::chrono_literals;
 /* This test does not test anything, you may use it as a template for your unit tests.
  * It shows all the elements you need to use mocks for all the ble APIS. */
 
-class TestLinkLoss : public testing::Test {
+class TestTemplate : public testing::Test {
 protected:
     void SetUp()
     {
@@ -51,7 +51,7 @@ protected:
     events::EventQueue queue;
 };
 
-TEST_F(TestLinkLoss, reset)
+TEST_F(TestTemplate, reset)
 {
     /* these are the user facing APIs */
     Gap &gap = ble->gap();
