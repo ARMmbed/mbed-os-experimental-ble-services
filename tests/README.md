@@ -95,7 +95,7 @@ This library provides a fake BLE implementation that uses mocks instead of real 
 There is no need to initialise a fake BLE instance; it is ready to go and can be used just like a normal BLE instance:
 
 ```
-BLE ble = &BLE::Instance();
+BLE *ble = &BLE::Instance();
 ```
 
 This call also initialises mocks. Do no cache the BLE instance pointer, or pointer to GAP, GattServer etc. between
