@@ -26,7 +26,7 @@ and search for `Open folder in container...` ([reference](https://code.visualstu
 
 When the container is started, it will download the development image of this repository 
 and set it up. Once ready open the command palette > `Run Task` > `Bootstrap`. 
-This action setup the rest of the environment specific to the repository.
+This action will setup the rest of the environment specific to the repository.
 
 That's it your all set to develop and debug new and exciting services!
 
