@@ -22,10 +22,7 @@
 		"ms-vscode.cpptools",
 		"ms-vscode.cmake-tools",
 		"twxs.cmake",
-		"jeff-hykin.better-cpp-syntax",
-		"eamodio.gitlens",
-		"fredericbonnet.cmake-test-adapter",
-		"hbenl.vscode-test-explorer"
+		"jeff-hykin.better-cpp-syntax"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
