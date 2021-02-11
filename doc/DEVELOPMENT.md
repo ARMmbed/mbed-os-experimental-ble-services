@@ -46,7 +46,7 @@ To debug a test, open the test panel on the left and click on the bug icon of th
 ### Troubleshooting
 
 - Autocompletion: The autocompletion engine takes a significant amount of time to 
-start. When it is ready, the database icon at the bottom of the IDE should disapear. 
+start. When it is ready, the database icon at the bottom of the IDE should disappear. 
 - Speed: I/O can be slow when docker is run on Window or MacOS systems. You can 
 clone this repository in a docker volume using the command [`Clone Repository in Container Volume`](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-a-git-repository-or-github-pr-in-an-isolated-container-volume) .
 
