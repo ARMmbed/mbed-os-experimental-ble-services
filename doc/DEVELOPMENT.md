@@ -24,7 +24,7 @@ If you miss VSCode toast, you can open the
 [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette)
 and search for `Open folder in container...` ([reference](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container))
 
-When the container is started, it download the development image of this repository 
+When the container is started, it will download the development image of this repository 
 and set it up. Once ready open the command palette > `Run Task` > `Bootstrap`. 
 This action setup the rest of the environment specific to the repository.
 
@@ -67,4 +67,3 @@ From an environment standpoint, an `mbed-os` folder should be present in the
 `tests` folder. It can be a symbolic link to a local Mbed OS version or a plain 
 clone. Running the command `bootstrap.sh` will ensure Mbed OS is available in the 
 environemnt. 
-
