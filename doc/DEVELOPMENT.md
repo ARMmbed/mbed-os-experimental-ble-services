@@ -3,6 +3,23 @@
 New services, enhancement and bug fixes are welcomed. To contribute to this 
 repository you should set up a development environment. 
 
+## Minimum Requirements 
+
+It is possible to develop services in your native environment and IDE of your 
+choice (including VSCode!). 
+
+The following softwares are required to build and run the unit tests from this 
+repository: 
+- CMake
+- Git
+- A host toolchain 
+- Ninja
+
+From an environment standpoint, an `mbed-os` folder should be present in the 
+`tests` folder. It can be a symbolic link to a local Mbed OS version or a plain 
+clone. Running the command `bootstrap.sh` will ensure Mbed OS is available in the 
+environemnt. 
+
 ## Getting started 
 
 ### Setup
@@ -49,21 +66,3 @@ To debug a test, open the test panel on the left and click on the bug icon of th
 start. When it is ready, the database icon at the bottom of the IDE should disappear. 
 - Speed: I/O can be slow when docker is run on Window or MacOS systems. You can 
 clone this repository in a docker volume using the command [`Clone Repository in Container Volume`](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-a-git-repository-or-github-pr-in-an-isolated-container-volume) .
-
-
-## Bare Requirements 
-
-It is possible to develop services in your native environment and IDE of your 
-choice (including VSCode!). 
-
-The following softwares are required to build and run the unit tests from this 
-repository: 
-- CMake
-- Git
-- A host toolchain 
-- Ninja
-
-From an environment standpoint, an `mbed-os` folder should be present in the 
-`tests` folder. It can be a symbolic link to a local Mbed OS version or a plain 
-clone. Running the command `bootstrap.sh` will ensure Mbed OS is available in the 
-environemnt. 
