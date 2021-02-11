@@ -60,7 +60,7 @@ The following softwares are required to build and run the unit tests from this
 repository: 
 - CMake
 - Git
-- An host toolchain 
+- A host toolchain 
 - Ninja
 
 From an environment standpoint, an `mbed-os` folder should be present in the 
