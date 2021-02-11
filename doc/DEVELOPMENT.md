@@ -28,7 +28,7 @@ When the container is started, it will download the development image of this re
 and set it up. Once ready open the command palette > `Run Task` > `Bootstrap`. 
 This action will setup the rest of the environment specific to the repository.
 
-That's it your all set to develop and debug new and exciting services!
+That's it you're all set to develop and debug new and exciting services!
 
 ### Commands
 
