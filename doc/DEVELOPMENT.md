@@ -28,7 +28,9 @@ To facilitate the development experience, a Visual studio code configuration is
 available out of the box as well as a ready to use docker image. 
 
 First you need to download and install [VSCode](https://code.visualstudio.com/)
-and [docker](https://www.docker.com/products/docker-desktop). 
+and [docker](https://www.docker.com/products/docker-desktop). If you're using a
+Linux host, make sure to [configure](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) 
+your system to run docker with your local user. 
 
 Start docker then start VSCode and install the [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. 
 
@@ -41,28 +43,28 @@ If you miss VSCode toast, you can open the
 [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette)
 and search for `Open folder in container...` ([reference](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container))
 
-When the container is started, it will download the development image of this repository 
-and set it up. Once ready open the command palette > `Run Task` > `Bootstrap`. 
-This action will setup the rest of the environment specific to the repository.
+When the container is started, it will download the development image of this 
+repository and set it up.
 
 That's it you're all set to develop and debug new and exciting services!
 
 ### Commands
 
-All the commands you need are accessible through the command palette:
-- Cmake configuration: > `Cmake: Configure`
-- Build: > `Cmake: Build`
-- Execute test: > `Cmake: Run Test` 
+Most of the compilation and build commands are accessible through the UI: 
 
-### Debug tests
+![Cmake toolbar](./img/vscode-cmake-toolbar.png)
 
-To debug a test, open the test panel on the left and click on the bug icon of the test you want to debug.
+Commands are accessible through the Command palette too: 
+- Cmake configuration: `Cmake: Configure`
+- Build: `Cmake: Build`
+- Select build target: `CMake: Set Build Target`
+- Execute test: `Cmake: Run Test` 
+- Debug target: `CMake: Debug`
 
-![VScode debug](./img/vscode-debug.png)
 
 ### Troubleshooting
 
 - Autocompletion: The autocompletion engine takes a significant amount of time to 
 start. When it is ready, the database icon at the bottom of the IDE should disappear. 
-- Speed: I/O can be slow when docker is run on Window or MacOS systems. You can 
+- Speed: I/O can be **really** slow when docker is run on Window or MacOS systems. You can 
 clone this repository in a docker volume using the command [`Clone Repository in Container Volume`](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-a-git-repository-or-github-pr-in-an-isolated-container-volume) .
