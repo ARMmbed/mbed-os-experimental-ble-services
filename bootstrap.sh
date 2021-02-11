@@ -14,5 +14,5 @@ then
 else
     #git clone https://github.com/ARMmbed/mbed-os.git
     # until it's not merged we use my branch
-    git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-tests
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test
 fi
