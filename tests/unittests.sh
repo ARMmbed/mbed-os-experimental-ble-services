@@ -4,15 +4,8 @@ set -e
 # set pwd to script location
 cd "$( dirname "$0" )"
 
-# we need stubs from mbed-os
-if [ -d "mbed-os" ]
-then
-    echo "Using existing mbed-os"
-else
-    #git clone https://github.com/ARMmbed/mbed-os.git
-    # until it's not merged we use my branch
-    git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-tests
-fi
+# Bootstrap of the environment 
+../bootstrap.sh
 
 cmake -S . -B cmake_build -GNinja
 cmake --build cmake_build
