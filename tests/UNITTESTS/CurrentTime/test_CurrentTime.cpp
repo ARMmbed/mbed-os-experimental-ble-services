@@ -37,6 +37,8 @@ protected:
 
     void TearDown()
     {
+        /* remember you must call this at the end of the test if you have any expectations set */
+        ble::delete_mocks();
     }
 
     BLE* ble;
@@ -61,7 +63,4 @@ TEST_F(TestLinkLoss, reset)
     client.reset();
     server.reset();
     sm.reset();
-
-    /* remember you must call this at the end of the test if you have any expectations set */
-    ble::reset_mocks();
 }
