@@ -7,7 +7,7 @@ cd "$( dirname "$0" )"
 # Bootstrap of the environment 
 ../bootstrap.sh
 
-cmake -S . -B cmake_build -GNinja
+cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
 cmake --build cmake_build
 
 # normal test
