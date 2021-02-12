@@ -27,14 +27,16 @@ environemnt.
 To facilitate the development experience, a Visual studio code configuration is 
 available out of the box as well as a ready to use docker image. 
 
-First you need to download and install [VSCode](https://code.visualstudio.com/)
+1. Download and install [VSCode](https://code.visualstudio.com/)
 and [docker](https://www.docker.com/products/docker-desktop). If you're using a
 Linux host, make sure to [configure](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) 
 your system to run docker with your local user. 
 
-Start docker then start VSCode and install the [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. 
+1. Start the docker daemon
 
-Open the local version of this repository VSCode and VSCode will propose you to 
+1. VSCode and install the [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. 
+
+1. Open the local version of this repository VSCode and VSCode will propose you to 
 reopen the folder in a container. 
 
 ![Open in container toast](./img/vscode-open-in-container.png)
