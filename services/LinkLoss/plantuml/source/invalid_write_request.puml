@@ -1,0 +1,20 @@
+@startuml
+
+participant LinkLossService as LLS
+participant BT_Stack as BTS
+
+== Link Loss Service Constructed ==
+
+LLS <- BTS : onDataWritten(write_request)
+activate LLS
+note left
+write_request
+----
+0x02 < data
+authorizationReply=SUCCESS
+end note
+
+LLS -> LLS : write_request.authorizationReply = OUT_OF_RANGE
+deactivate LLS
+
+@enduml
