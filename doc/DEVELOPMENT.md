@@ -8,7 +8,7 @@ repository you should set up a development environment.
 It is possible to develop services in your native environment and IDE of your 
 choice (including VSCode!). 
 
-The following softwares are required to build and run the unit tests from this 
+The following software packages are required to build and run the unit tests from this 
 repository: 
 - CMake
 - Git
