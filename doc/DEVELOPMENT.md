@@ -36,7 +36,7 @@ your system to run docker with your local user.
 
 1. Open VSCode and install the [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. 
 
-1. Open the local version of this repository VSCode and VSCode will propose you to 
+1. Open the local version of this repository in VSCode and VSCode will propose you to 
 reopen the folder in a container. 
 
 ![Open in container toast](./img/vscode-open-in-container.png)
