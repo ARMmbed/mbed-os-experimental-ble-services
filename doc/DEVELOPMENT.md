@@ -1,6 +1,6 @@
 # Development
 
-New services, enhancement and bug fixes are welcomed. To contribute to this 
+New services, enhancements and bug fixes are welcome. To contribute to this 
 repository you should set up a development environment. 
 
 ## Minimum Requirements 
