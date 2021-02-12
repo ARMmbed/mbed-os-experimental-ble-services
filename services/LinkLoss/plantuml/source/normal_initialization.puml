@@ -1,0 +1,32 @@
+@startuml
+
+participant Application as APP
+participant LinkLossService as LLS
+participant GattServer as GS
+participant ChainableGapEventHandler as CGEH
+
+== Link Loss Service Constructed ==
+APP -> LLS : init()
+activate LLS
+
+LLS -> LLS : _alert_level_char.setWriteAuthorizationCallback(onDataWritten)
+
+LLS -> GS : addService(linkLossService)
+note left
+GattService: linkLossService
+----
+uuid=0x1803
+characteristics=charTable
+numCharacteristics=1
+end note
+activate GS
+LLS <- GS : ble_error_t::BLE_ERROR_NONE
+deactivate GS
+
+LLS -> CGEH : addEventHandler(LinkLossService)
+activate CGEH
+deactivate CGEH
+APP <- LLS : ble_error_t::BLE_ERROR_NONE
+deactivate LLS
+
+@enduml
