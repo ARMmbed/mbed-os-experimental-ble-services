@@ -5,7 +5,7 @@ repository you should set up a development environment.
 
 ## Minimum Requirements 
 
-It is possible to develop services in your native environment and IDE of your 
+It is possible to develop services in your native environment and IDE of
 choice (including VSCode!). 
 
 The following software packages are required to build and run the unit tests from this 
