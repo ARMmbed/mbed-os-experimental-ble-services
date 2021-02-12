@@ -1,0 +1,6 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/tests",
+    "cmakeExplorer.cmakeIntegration": true,
+    "cmakeExplorer.buildDir": "${workspaceFolder}/build",
+    "workbench.colorTheme": "Default Dark+"
+}
