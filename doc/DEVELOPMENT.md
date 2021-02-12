@@ -39,7 +39,7 @@ reopen the folder in a container.
 
 ![Open in container toast](./img/vscode-open-in-container.png)
 
-If you miss VSCode toast, you can open the 
+If you miss the VSCode toast, you can open the 
 [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette)
 and search for `Open folder in container...` ([reference](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container))
 
