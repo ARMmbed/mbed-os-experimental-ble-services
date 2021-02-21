@@ -1,0 +1,17 @@
+atomicwrites==1.4.0
+attrs==20.3.0
+bleak==0.10.0
+colorama==0.4.4
+importlib-metadata==3.4.0
+iniconfig==1.1.1
+packaging==20.9
+pluggy==0.13.1
+py==1.10.0
+pycparser==2.20
+pyparsing==2.4.7
+pytest==6.2.2
+pytest-asyncio==0.14.0
+pythonnet==2.5.2
+toml==0.10.2
+typing-extensions==3.7.4.3
+zipp==3.4.0
