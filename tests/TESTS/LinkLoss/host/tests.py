@@ -15,20 +15,29 @@
 
 import pytest
 
-from common.device import dut
+from common.fixtures import BoardAllocator
+from common.fixtures import ClientAllocator
 from .utils import UUID_ALERT_LEVEL_CHAR
+
+
+@pytest.fixture(scope="function")
+def board(board_allocator: BoardAllocator):
+    board = board_allocator.allocate('LinkLoss')
+    yield board
+    board_allocator.release(board)
 
 
 @pytest.mark.asyncio
 @pytest.fixture(scope="function")
-async def link_loss():
-    return await dut('LinkLoss')
+async def client(client_allocator: ClientAllocator):
+    client = await client_allocator.allocate('LinkLoss')
+    yield client
+    await client_allocator.release(client)
 
 
 @pytest.mark.asyncio
-async def test_read_alert_level_initial_value(link_loss):
-    test_output = await link_loss.client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
-    await link_loss.client.disconnect()
+async def test_read_alert_level_initial_value(board, client):
+    test_output = await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
     assert test_output == bytearray(b'\x00')
 
 
@@ -38,10 +47,9 @@ async def test_read_alert_level_initial_value(link_loss):
     [(bytearray(b'\x00'), bytearray(b'\x00')),
      (bytearray(b'\x01'), bytearray(b'\x01')),
      (bytearray(b'\x02'), bytearray(b'\x02'))])
-async def test_alert_level_write(link_loss, test_input, expected):
-    await link_loss.client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, test_input)
-    test_output = await link_loss.client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
-    await link_loss.client.disconnect()
+async def test_alert_level_write(board, client, test_input, expected):
+    await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, test_input)
+    test_output = await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
     assert test_output == expected
 
 
@@ -53,5 +61,5 @@ async def test_alert_level_write(link_loss, test_input, expected):
     [(bytearray(b'\x00'), ""),
      (bytearray(b'\x01'), "Mild Alert"),
      (bytearray(b'\x02'), "High Alert")])
-async def test_alert_mechanism(link_loss, test_input, expected):
+async def test_alert_mechanism(board, client, test_input, expected):
 """
