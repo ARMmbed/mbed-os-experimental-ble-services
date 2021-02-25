@@ -18,6 +18,7 @@
 #include "ble/BLE.h"
 #include "ble/gap/Gap.h"
 #include "ble-service-link-loss/LinkLossService.h"
+#include "ble-service-disconnection/DisconnectionService.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -32,7 +33,8 @@ public:
             _ble(ble),
             _event_queue(event_queue),
             _chainable_gap_event_handler(chainable_gap_event_handler),
-            _link_loss_service(_ble, _event_queue, _chainable_gap_event_handler),
+            _disconnection_service(_ble, _chainable_gap_event_handler),
+            _link_loss_service(_ble, _event_queue, _disconnection_service.get_chainable_gap_event_handler_proxy()),
             _adv_data_builder(_adv_buffer)
     {
     }
@@ -55,6 +57,8 @@ private:
         /* The ChainableGapEventHandler allows us to dispatch events from GAP to more than a single event handler */
         _chainable_gap_event_handler.addEventHandler(this);
         _ble.gap().setEventHandler(&_chainable_gap_event_handler);
+
+        _disconnection_service.init();
 
         _link_loss_service.init();
 
@@ -144,6 +148,7 @@ private:
     events::EventQueue &_event_queue;
     ChainableGapEventHandler &_chainable_gap_event_handler;
 
+    DisconnectionService _disconnection_service;
     LinkLossService _link_loss_service;
 
     uint8_t _adv_buffer[ble::LEGACY_ADVERTISING_MAX_SIZE];

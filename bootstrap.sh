@@ -20,4 +20,5 @@ fi
 # Add symlinks for Link Loss Service integration tests
 cd TESTS/LinkLoss/device
 ln -s ../../../mbed-os mbed-os
-ln -s ../../../../services/LinkLoss LinkLoss
+cd services
+ln -s ../../../../../services/LinkLoss LinkLoss
