@@ -13,11 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
+import time
 import pytest
 
-from common.fixtures import BoardAllocator
-from common.fixtures import ClientAllocator
-from .utils import UUID_ALERT_LEVEL_CHAR
+from common.fixtures import BoardAllocator, ClientAllocator
+from bleak.uuids import uuid16_dict
+
+uuid16_dict = {v: k for k, v in uuid16_dict.items()}
+
+UUID_ALERT_LEVEL_CHAR = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+    uuid16_dict.get("Alert Level")
+)
+
+UUID_DISCONNECTION_REASON_CHAR = "f43620d0-779d-11eb-9439-0242ac130002"
+
+CONNECTION_TIMEOUT = bytearray(b'\x08')
+
+NO_ALERT   = bytearray(b'\x00')
+MILD_ALERT = bytearray(b'\x01')
+HIGH_ALERT = bytearray(b'\x02')
 
 
 @pytest.fixture(scope="function")
@@ -37,29 +51,21 @@ async def client(client_allocator: ClientAllocator):
 
 @pytest.mark.asyncio
 async def test_read_alert_level_initial_value(board, client):
-    test_output = await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
-    assert test_output == bytearray(b'\x00')
+    assert await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR) == NO_ALERT
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "test_input,expected",
-    [(bytearray(b'\x00'), bytearray(b'\x00')),
-     (bytearray(b'\x01'), bytearray(b'\x01')),
-     (bytearray(b'\x02'), bytearray(b'\x02'))])
-async def test_alert_level_write(board, client, test_input, expected):
-    await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, test_input)
-    test_output = await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR)
-    assert test_output == expected
+    "alert_level", [NO_ALERT, MILD_ALERT, HIGH_ALERT])
+async def test_alert_level_write(board, client, alert_level):
+    await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
+    assert await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR) == alert_level
 
 
-# TODO: test the alert mechanism
-"""
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "test_input,expected",
-    [(bytearray(b'\x00'), ""),
-     (bytearray(b'\x01'), "Mild Alert"),
-     (bytearray(b'\x02'), "High Alert")])
-async def test_alert_mechanism(board, client, test_input, expected):
-"""
+    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!\r\n"), (HIGH_ALERT, "High Alert!\r\n")])
+async def test_alert_mechanism(board, client, alert_level, alert_message):
+    await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
+    await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
+    assert board.flush(timeout=10)[2] == alert_message
