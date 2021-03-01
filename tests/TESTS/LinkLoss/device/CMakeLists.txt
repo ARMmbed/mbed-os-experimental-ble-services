@@ -24,6 +24,8 @@ project(${APP_TARGET})
 
 target_sources(${APP_TARGET}
         PRIVATE
+        source/DisconnectionService.h
+        source/DisconnectionService.cpp
         source/main.cpp
         )
 

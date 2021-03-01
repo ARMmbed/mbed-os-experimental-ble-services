@@ -17,8 +17,7 @@ else
     git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test
 fi
 
-# Add symlinks for Link Loss Service integration tests
-cd TESTS/LinkLoss/device
-ln -s ../../../mbed-os mbed-os
-cd services
-ln -s ../../../../../services/LinkLoss LinkLoss
+# Add symbolic links for Link Loss Service integration tests
+. ../symlink.sh
+symlink  ./mbed-os TESTS/LinkLoss/device/mbed-os
+symlink ../services/LinkLoss TESTS/LinkLoss/device/LinkLoss
