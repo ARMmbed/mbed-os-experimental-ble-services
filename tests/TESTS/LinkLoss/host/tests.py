@@ -33,6 +33,8 @@ NO_ALERT   = bytearray(b'\x00')
 MILD_ALERT = bytearray(b'\x01')
 HIGH_ALERT = bytearray(b'\x02')
 
+alert_timeout = 60
+
 
 @pytest.fixture(scope="function")
 def board(board_allocator: BoardAllocator):
@@ -69,3 +71,5 @@ async def test_alert_mechanism(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
     assert board.flush(timeout=10)[2] == alert_message
+    time.sleep(alert_timeout)
+    assert board.flush(timeout=10)[1] == "Alert ended\r\n"
