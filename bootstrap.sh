@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
 
-# set pwd to script location
-cd "$( dirname "$0" )"
+# Load symlink script, it sets the current directory to the root of
+# the repository and export its path in a ROOT variable
+source $(dirname $0)/symlink.sh
 
-# enter the test folder 
+cd "$ROOT"
+
+# enter the test folder
 cd ./tests
 
 # we need stubs from mbed-os
@@ -18,6 +21,6 @@ else
 fi
 
 # Add symbolic links for Link Loss Service integration tests
-. ../symlink.sh
-symlink  ./mbed-os TESTS/LinkLoss/device/mbed-os
-symlink ../services/LinkLoss TESTS/LinkLoss/device/LinkLoss
+cd "$ROOT"
+symlink "tests/mbed-os" "tests/TESTS/LinkLoss/device/mbed-os"
+symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
