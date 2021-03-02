@@ -17,8 +17,8 @@
 
 #include "ble/BLE.h"
 #include "ble/gap/Gap.h"
+#include "DisconnectionService.h"
 #include "ble-service-link-loss/LinkLossService.h"
-#include "ble-service-disconnection/DisconnectionService.h"
 
 using namespace std::literals::chrono_literals;
 

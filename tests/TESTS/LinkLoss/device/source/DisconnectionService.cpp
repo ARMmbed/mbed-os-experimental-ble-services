@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "ble-service-disconnection/DisconnectionService.h"
+#include "DisconnectionService.h"
 
 DisconnectionService::DisconnectionService(BLE &ble, ChainableGapEventHandler &chainable_gap_event_handler) :
     _ble(ble),

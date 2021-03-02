@@ -169,16 +169,17 @@ class ClientAllocator:
 
     async def release(self, client: BleakClient) -> None:
         if self.client == client and self.client is not None:
-            attempts = 5
-            while attempts > 0:
-                try:
-                    disconnected = await self.client.disconnect()
-                    if disconnected is True:
-                        self.client = None
-                        return
-                except BleakError:
-                    pass
-                attempts -= 1
+            if await client.is_connected():
+                attempts = 5
+                while attempts > 0:
+                    try:
+                        disconnected = await client.disconnect()
+                        if disconnected is True:
+                            self.client = None
+                            return
+                    except BleakError:
+                        pass
+                    attempts -= 1
             assert False
 
 
