@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import time
 import pytest
+import platform
 
 from common.fixtures import BoardAllocator, ClientAllocator
 from bleak.uuids import uuid16_dict
@@ -66,10 +66,30 @@ async def test_alert_level_write(board, client, alert_level):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!\r\n"), (HIGH_ALERT, "High Alert!\r\n")])
+    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!"), (HIGH_ALERT, "High Alert!")])
 async def test_alert_mechanism(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
-    assert board.flush(timeout=10)[2] == alert_message
-    time.sleep(alert_timeout)
-    assert board.flush(timeout=10)[1] == "Alert ended\r\n"
+    # TODO: open issue on bleak: https://github.com/hbldh/bleak
+    # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
+    # This does not affect the application running on the device since we are already disconnected
+    if platform.system() == "Windows":
+        await client.disconnect()
+    board.wait_for_output(alert_message, timeout=10)
+    board.wait_for_output("Alert ended", timeout=alert_timeout)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!\r\n"), (HIGH_ALERT, "High Alert!\r\n")])
+async def test_disconnection_reconnection(board, client, alert_level, alert_message):
+    await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
+    await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
+    # TODO: open issue on bleak: https://github.com/hbldh/bleak
+    # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
+    # This does not affect the application running on the device since we are already disconnected
+    if platform.system() == "Windows":
+        await client.disconnect()
+    board.wait_for_output(alert_message, timeout=10)
+    await client.connect()
+    board.wait_for_output("Alert ended", timeout=10)

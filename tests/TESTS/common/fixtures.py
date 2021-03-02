@@ -155,7 +155,7 @@ class ClientAllocator:
             devices = await BleakScanner.discover()
             for d in devices:
                 if name == d.name:
-                    self.client = BleakClient(d.address)
+                    self.client = BleakClient(d)
                     attempts = 5
                     while attempts > 0:
                         try:

@@ -11,8 +11,7 @@ include(${MBED_PATH}/tools/cmake/app.cmake)
 
 add_subdirectory(${MBED_PATH})
 
-add_subdirectory(services/LinkLoss)
-add_subdirectory(services/Disconnection)
+add_subdirectory(LinkLoss)
 
 add_executable(${APP_TARGET})
 
@@ -35,7 +34,6 @@ target_link_libraries(${APP_TARGET}
         mbed-events
         mbed-ble
         ble-service-link-loss
-        ble-service-disconnection
         )
 
 mbed_set_post_build(${APP_TARGET})
