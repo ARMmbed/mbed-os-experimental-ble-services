@@ -43,7 +43,6 @@ def board(board_allocator: BoardAllocator):
     board_allocator.release(board)
 
 
-@pytest.mark.asyncio
 @pytest.fixture(scope="function")
 async def client(client_allocator: ClientAllocator):
     client = await client_allocator.allocate('LinkLoss')
@@ -81,7 +80,7 @@ async def test_alert_mechanism(board, client, alert_level, alert_message):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!\r\n"), (HIGH_ALERT, "High Alert!\r\n")])
+    "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!"), (HIGH_ALERT, "High Alert!")])
 async def test_disconnection_reconnection(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
