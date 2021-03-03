@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import mbed_lstools
+import platform
 import logging
 import pytest
 
@@ -180,7 +181,10 @@ class ClientAllocator:
                     except BleakError:
                         pass
                     attempts -= 1
-            assert False
+            else:
+                if platform.system() == "Darwin":
+                    await client.connect()
+                    await self.release(client)
 
 
 @pytest.fixture(scope="session")
