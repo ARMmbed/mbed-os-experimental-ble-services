@@ -52,7 +52,6 @@ private:
     ChainableGapEventHandler &_chainable_gap_event_handler;
     ChainableGapEventHandler  _chainable_gap_event_handler_proxy;
 
-    ReadWriteGattCharacteristic<ble::disconnection_reason_t> _disconnection_reason_char;
     bool _use_local_disconnection_reason = false;
     ble::disconnection_reason_t _disconnection_reason = ble::disconnection_reason_t::AUTHENTICATION_FAILURE;
 };

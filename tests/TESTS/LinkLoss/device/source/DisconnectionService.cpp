@@ -19,17 +19,18 @@
 
 DisconnectionService::DisconnectionService(BLE &ble, ChainableGapEventHandler &chainable_gap_event_handler) :
     _ble(ble),
-    _chainable_gap_event_handler(chainable_gap_event_handler),
-    _disconnection_reason_char(UUID_DISCONNECTION_REASON_CHAR, &_disconnection_reason)
+    _chainable_gap_event_handler(chainable_gap_event_handler)
 {
 }
 
 ble_error_t DisconnectionService::init()
 {
-    GattCharacteristic *charTable[] = { &_disconnection_reason_char };
+    ReadWriteGattCharacteristic<ble::disconnection_reason_t> disconnection_reason_char(UUID_DISCONNECTION_REASON_CHAR, &_disconnection_reason);
+
+    GattCharacteristic *charTable[] = { &disconnection_reason_char };
     GattService         disconnectionService(UUID_DISCONNECTION_SERVICE, charTable, 1);
 
-    _disconnection_reason_char.setWriteAuthorizationCallback(this, &DisconnectionService::onDataWritten);
+    disconnection_reason_char.setWriteAuthorizationCallback(this, &DisconnectionService::onDataWritten);
 
     ble_error_t error = _ble.gattServer().addService(disconnectionService);
 
