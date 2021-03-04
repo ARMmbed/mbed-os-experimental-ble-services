@@ -7,10 +7,10 @@ source $(dirname $0)/symlink.sh
 
 cd "$ROOT"
 
-# enter the test folder
+# Enter the test folder
 cd ./tests
 
-# we need stubs from mbed-os
+# We need stubs from mbed-os
 if [ -d "mbed-os" ]
 then
     echo "Using existing mbed-os"
@@ -20,7 +20,17 @@ else
     git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test
 fi
 
-# Add symbolic links for Link Loss Service integration tests
+# Add symbolic links
 cd "$ROOT"
 symlink "tests/mbed-os" "tests/TESTS/LinkLoss/device/mbed-os"
 symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
+
+# Create virtual environment
+cd ./tests/TESTS
+mkdir venv
+virtualenv venv
+cd venv
+source bin/activate
+
+# Install requirements
+pip install -r ../requirements.txt

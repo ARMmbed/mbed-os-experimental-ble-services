@@ -2,32 +2,13 @@
 
 This repository contains a set of tools that can be used to write integration tests for Experimental BLE Services.
 The approach taken is based on [bleak](https://bleak.readthedocs.io/en/latest/), a GATT client software capable of connecting to BLE devices acting as GATT servers.
-As such, **only a single host and board are required to develop and run the tests**.
-
-## Requirements
-It is recommended to use a virtual environment to avoid dependency issues. To create and run the virtual environment:
-
-```
-mkdir venv
-virtualenv venv
-cd venv
-source bin/activate
-```
-
-To install the required Python packages run:
-
-```
-cd ..
-pip install -r requirements.txt
-```
+As such, only a single host and board are required to develop and run the tests.
 
 ## Test code structure
 Each test suite should be named after the service under test (SUT) and contain two folders: device and host.
 The former is a BLE application containing the SUT, and should be built and flashed onto the board prior to running the tests.
 The latter is home to one or more test scripts that test the SUT's system-level functionality.
 For example, the directory tree for the LinkLoss test suite is shown below.
-The ~mbed-os and ~LinkLoss files are symbolic links for the Mbed OS clone in the parent tests directory, and the Link Loss Service (LLS) files in the services subdirectory of the root Experimental BLE Services repository, respectively.
-These are added during the bootstrap process using the `symlink` command, a platform agnostic method to create symbolic links.
 
 ```
 LinkLoss/
@@ -43,6 +24,14 @@ LinkLoss/
 └─── host/
      │─── __init__.py
      └─── test_link_loss.py
+```
+
+The ~mbed-os and ~LinkLoss files are symbolic links for the Mbed OS clone in the parent tests directory, and the Link Loss Service (LLS) files in the services subdirectory of the root Experimental BLE Services repository, respectively.
+These are added during the bootstrap process using the `symlink` command, a platform agnostic method to create symbolic links.
+The general syntax is:
+
+```
+symlink <source> <destination>
 ```
 
 ## Integration testing with pytest
@@ -81,15 +70,14 @@ async def client(client_allocator: ClientAllocator):
 
 ### Building and running integration tests
 1. Run the bootstrap process: `../bootstrap.sh`
-   
 
 1. Enter the device folder and compile and flash the BLE application onto the board:
-   
+
    ```
    cd <service>/device
    mbed compile -t <toolchain> -m <target> -f 
    ```
-   
+
    where, `<service>` is the name of the test suite, e.g. `LinkLoss`
 
 1. Run the tests by passing the host folder to pytest:
@@ -97,11 +85,11 @@ async def client(client_allocator: ClientAllocator):
    ```
    python -m pytest <service>/host
    ```
-   
-   On some platforms, it is required to specify the target and port in additional argumnets:
+
+   On some platforms, it is required to specify the target and port in additional arguments:
 
    ```
    python -m pytest <service>/host --platforms=<target> --serial_port=<port>
    ```
-   
+
    where, `<port>` is the name of serial port connected to the DUT, e.g. `COM8`
