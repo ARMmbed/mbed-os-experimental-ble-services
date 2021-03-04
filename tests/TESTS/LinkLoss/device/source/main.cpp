@@ -63,7 +63,7 @@ private:
         _link_loss_service.init();
 
         _link_loss_service.set_event_handler(this);
-        _link_loss_service.set_alert_timeout(60000ms);
+        _link_loss_service.set_alert_timeout(5000ms);
 
         start_advertising();
     }

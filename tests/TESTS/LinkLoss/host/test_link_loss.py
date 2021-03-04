@@ -33,7 +33,7 @@ NO_ALERT   = bytearray(b'\x00')
 MILD_ALERT = bytearray(b'\x01')
 HIGH_ALERT = bytearray(b'\x02')
 
-alert_timeout = 60
+alert_timeout = 5
 
 
 @pytest.fixture(scope="function")
