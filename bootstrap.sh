@@ -33,7 +33,7 @@ symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
 # Create virtual environment
 cd ./tests/TESTS
 mkdir venv
-python -m virtualenv venv
+python3 -m virtualenv venv
 cd venv
 
 if windows; then

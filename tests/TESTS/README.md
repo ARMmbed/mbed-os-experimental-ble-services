@@ -69,7 +69,7 @@ async def client(client_allocator: ClientAllocator):
 ```
 
 ### Building and running integration tests
-1. Run the bootstrap process: `../bootstrap.sh`
+1. Run the bootstrap process: `../../bootstrap.sh`
 
 1. Enter the device folder and compile and flash the BLE application onto the board:
 
