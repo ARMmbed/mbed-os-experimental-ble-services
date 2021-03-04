@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Test if the script is running on windows
+windows() {
+    [[ -n "$WINDIR" ]];
+}
+
 # Load symlink script, it sets the current directory to the root of
 # the repository and export its path in a ROOT variable
 source $(dirname $0)/symlink.sh
@@ -28,10 +33,14 @@ symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
 # Create virtual environment
 cd ./tests/TESTS
 mkdir venv
-pip3 install virtualenv
-virtualenv venv
+python -m virtualenv venv
 cd venv
-source bin/activate
+
+if windows; then
+  source Scripts/activate
+else
+  source bin/activate
+fi
 
 # Install requirements
 pip install -r ../requirements.txt
