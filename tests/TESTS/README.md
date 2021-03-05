@@ -13,13 +13,15 @@ For example, the directory tree for the LinkLoss test suite is shown below.
 ```
 LinkLoss/
 ├─── device/
+│    │─── ~LinkLoss
+│    │─── ~mbed-os
 │    │─── source/
 │    │    │─── DisconnectionService.cpp
 │    │    │─── DisconnectionService.h
 │    │    └─── main.cpp
-│    │─── ~mbed-os
-│    │─── ~LinkLoss
+│    │─── .mbed
 │    │─── CMakeLists.txt
+│    │─── mbed-os.lib
 │    └─── mbed_app.json
 └─── host/
      │─── __init__.py

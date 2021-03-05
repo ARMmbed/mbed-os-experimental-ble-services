@@ -44,3 +44,6 @@ mbed_config.h
 BUILD/
 cmake_build/
 
+# symlinks
+tests/TESTS/LinkLoss/device/mbed-os
+tests/TESTS/LinkLoss/device/LinkLoss
