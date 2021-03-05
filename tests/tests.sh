@@ -9,11 +9,7 @@ cd "$( dirname "$0" )"
 
 # -- Link Loss Service --
 cd TESTS/LinkLoss/device
-# Build for NRF52840_DK (old tools)
+# Build for NRF52840_DK
 mbed compile -t GCC_ARM -m NRF52840_DK
-# Build for NRF52840_DK (new tools)
-mbedtools compile -t GCC_ARM -m NRF52840_DK
-# Build for DISCO_L496AG (old tools)
+# Build for DISCO_L496AG
 mbed compile -t GCC_ARM -m DISCO_L496AG
-# Build for DISCO_L496AG (new tools)
-mbedtools compile -t GCC_ARM -m DISCO_L496AG
