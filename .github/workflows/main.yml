@@ -18,3 +18,5 @@ jobs:
         with:
           name: gcovr coverage result
           path: tests/coverage.html
+      - name: Run Integration Test
+        uses: ./tests/CI/run-integration-test
