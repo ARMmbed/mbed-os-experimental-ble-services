@@ -33,10 +33,10 @@ symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
 # Create virtual environment
 cd ./tests/TESTS
 mkdir venv
-pip3 install virtualenv
-virtualenv venv
+python3 -m virtualenv venv
 cd venv
 
+# Activate virtual environment
 if windows; then
   source Scripts/activate
 else

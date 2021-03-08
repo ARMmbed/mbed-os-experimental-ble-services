@@ -7,9 +7,9 @@ cd "$( dirname "$0" )"
 # Bootstrap of the environment
 ../bootstrap.sh
 
-# -- Link Loss Service --
+# Link Loss Service builds
 cd TESTS/LinkLoss/device
-# Build for NRF52840_DK
 mbed compile -t GCC_ARM -m NRF52840_DK
-# Build for DISCO_L496AG
+mbedtools compile -t GCC_ARM -m NRF52840_DK
 mbed compile -t GCC_ARM -m DISCO_L496AG
+mbedtools compile -t GCC_ARM -m DISCO_L496AG
