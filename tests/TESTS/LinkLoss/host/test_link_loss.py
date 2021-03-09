@@ -69,7 +69,6 @@ async def test_alert_level_write(board, client, alert_level):
 async def test_alert_mechanism(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
-    # TODO: open issue on bleak: https://github.com/hbldh/bleak
     # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
     # This does not affect the application running on the device since we are already disconnected
     if platform.system() == "Windows":
@@ -84,7 +83,6 @@ async def test_alert_mechanism(board, client, alert_level, alert_message):
 async def test_disconnection_reconnection(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
-    # TODO: open issue on bleak: https://github.com/hbldh/bleak
     # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
     # This does not affect the application running on the device since we are already disconnected
     if platform.system() == "Windows":
