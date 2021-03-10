@@ -43,4 +43,3 @@ mbed_config.h
 *.pyc
 BUILD/
 cmake_build/
-

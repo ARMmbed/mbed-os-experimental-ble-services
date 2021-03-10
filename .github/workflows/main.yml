@@ -1,20 +1,28 @@
-name: Run Unit Tests
+name: Run Tests
 on:
   push:
     branches:
     - main
   pull_request:
 jobs:
-  build:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Run Unit Tests
-        uses: ./tests/CI/run-unit-test
-      - name: Uploading coverage result
-        uses: actions/upload-artifact@v2
-        with:
-          name: gcovr coverage result
-          path: tests/coverage.html
+  unit-test:
+      name: Unit tests
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+        - name: Run Unit Tests
+          uses: ./tests/CI/run-unit-test
+        - name: Uploading coverage result
+          uses: actions/upload-artifact@v2
+          with:
+            name: gcovr coverage result
+            path: tests/coverage.html
+  integration-test:
+      name: Integration tests
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+        - name: Run Integration Tests
+          uses: ./tests/CI/run-integration-test
