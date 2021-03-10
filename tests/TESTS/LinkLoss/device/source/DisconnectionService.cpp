@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+
 #include "DisconnectionService.h"
 
 DisconnectionService::DisconnectionService(BLE &ble, ChainableGapEventHandler &chainable_gap_event_handler) :
@@ -39,6 +40,11 @@ ble_error_t DisconnectionService::init()
     }
 
     return error;
+}
+
+ChainableGapEventHandler& DisconnectionService::get_chainable_gap_event_handler_proxy()
+{
+    return _chainable_gap_event_handler_proxy;
 }
 
 void DisconnectionService::onDataWritten(GattWriteAuthCallbackParams *write_request)

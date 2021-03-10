@@ -25,6 +25,28 @@
 #include "ble/Gap.h"
 #include "ble/gap/ChainableGapEventHandler.h"
 
+/* Disconnection Service
+ *
+ * The disconnection service immediately disconnects from the client if a valid disconnections reason
+ * is written to the Disconnection Reason characteristic. The valid reasons are:
+ *
+ * AUTHENTICATION_FAILURE                      = 0x05
+ * CONNECTION_TIMEOUT                          = 0x08
+ * REMOTE_USER_TERMINATED_CONNECTION           = 0x13
+ * REMOTE_DEV_TERMINATION_DUE_TO_LOW_RESOURCES = 0x14
+ * REMOTE_DEV_TERMINATION_DUE_TO_POWER_OFF     = 0x15
+ * LOCAL_HOST_TERMINATED_CONNECTION            = 0x16
+ * UNACCEPTABLE_CONNECTION_PARAMETERS          = 0x3B
+ *
+ * If a valid disconnection reason is written to the Disconnection Reason characteristic,
+ * The service triggers a local disconnection, resulting in the disconnection callback being called.
+ * Therefore, the disconnection reason stored in the event will be LOCAL_HOST_TERMINATED_CONNECTION (0x16).
+ * The service is added to the chain of gap event handlers during the initialization process.
+ * As such, the disconnection event is registered in the service, which changes the disconnection reason
+ * to the value written by the client. For example, if the client wrote CONNECTION_TIMEOUT (0x13)
+ * to the Disconnection Reason characteristic, the disconnection reason stored in the event will now be
+ * CONNECTION_TIMEOUT (0x13).
+ */
 class DisconnectionService : private ble::Gap::EventHandler,
                              private mbed::NonCopyable<DisconnectionService> {
 public:
@@ -37,9 +59,7 @@ public:
 
     ble_error_t init();
 
-    ChainableGapEventHandler& get_chainable_gap_event_handler_proxy() {
-        return _chainable_gap_event_handler_proxy;
-    }
+    ChainableGapEventHandler& get_chainable_gap_event_handler_proxy();
 
 private:
     void onDataWritten(GattWriteAuthCallbackParams *write_request);
