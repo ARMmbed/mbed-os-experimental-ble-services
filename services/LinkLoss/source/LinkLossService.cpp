@@ -89,7 +89,7 @@ void LinkLossService::onConnectionComplete(const ble::ConnectionCompleteEvent &e
 
 void LinkLossService::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
-    AlertLevel level = get_alert_level();
+    AlertLevel level  = get_alert_level();
     if (_alert_handler != nullptr && event.getReason() == ble::disconnection_reason_t::CONNECTION_TIMEOUT &&
         level != AlertLevel::NO_ALERT && !_in_alert) {
         _in_alert = true;
