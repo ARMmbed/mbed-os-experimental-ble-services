@@ -1,7 +1,7 @@
 /*
  * Mbed-OS Microcontroller Library
- * Copyright (c) 2020 Embedded Planet
- * Copyright (c) 2020 ARM Limited
+ * Copyright (c) 2020-2021 Embedded Planet
+ * Copyright (c) 2020-2021 ARM Limited
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,35 +17,35 @@
  * limitations under the License
  */
 
-#ifndef MBED_OS_EXPERIMENTAL_BLE_SERVICES_SERVICES_INC_DFUSERVICE_H_
-#define MBED_OS_EXPERIMENTAL_BLE_SERVICES_SERVICES_INC_DFUSERVICE_H_
+#ifndef FOTA_SERVICE_H
+#define FOTA_SERVICE_H
+
+#include "ble/BLE.h"
+
+#if BLE_FEATURE_GATT_SERVER
 
 #include "ble/common/UUID.h"
-#include "ble/BLE.h"
 #include "ble/GattServer.h"
 #include "ble/Gap.h"
 
 #include "platform/Callback.h"
 #include "platform/Span.h"
-#include "platform/CircularBuffer.h"
 #include "platform/PlatformMutex.h"
 
 #include "events/EventQueue.h"
 
-#include "BlockDevice.h"
-
 #include "descriptors/CharacteristicUserDescriptionDescriptor.h"
 
 /**
- * Maximum length of data (in bytes) that the DFU service
+ * Maximum length of data (in bytes) that the FOTA service
  * can receive at one time.
  *
  * Typically MTU - 3 bytes for overhead
  */
 #ifndef MBED_CONF_CORDIO_DESIRED_ATT_MTU
-#define BLE_DFU_SERVICE_MAX_DATA_LEN MBED_CONF_BLE_DFU_SERVICE_BUFFER_SIZE
+#define BLE_FOTA_SERVICE_MAX_DATA_LEN MBED_CONF_BLE_FOTA_SERVICE_BUFFER_SIZE
 #else
-#define BLE_DFU_SERVICE_MAX_DATA_LEN (MBED_CONF_CORDIO_DESIRED_ATT_MTU - 3)
+#define BLE_FOTA_SERVICE_MAX_DATA_LEN (MBED_CONF_CORDIO_DESIRED_ATT_MTU - 3)
 #endif
 
 /**
@@ -53,9 +53,9 @@
  * This should be at least 1.5X the maximum MTU you expect to accept
  * Defaults to 2.5X maximum MTU
  */
-#ifndef MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE
-#define MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE ((BLE_DFU_SERVICE_MAX_DATA_LEN << 1) +\
-                                                  (BLE_DFU_SERVICE_MAX_DATA_LEN >> 1))
+#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE
+#define MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE ((BLE_FOTA_SERVICE_MAX_DATA_LEN << 1) +\
+                                                  (BLE_FOTA_SERVICE_MAX_DATA_LEN >> 1))
 #endif
 
 /**
@@ -65,8 +65,8 @@
  *
  * By default this is 2X the maximum MTU
  */
-#ifndef MBED_CONF_BLE_DFU_SERVICE_RX_FC_PAUSE_THRESHOLD
-#define MBED_CONF_BLE_DFU_SERVICE_RX_FC_PAUSE_THRESHOLD (BLE_DFU_SERVICE_MAX_DATA_LEN << 1)
+#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_FC_PAUSE_THRESHOLD
+#define MBED_CONF_BLE_FOTA_SERVICE_RX_FC_PAUSE_THRESHOLD (BLE_FOTA_SERVICE_MAX_DATA_LEN << 1)
 #endif
 
 /**
@@ -76,36 +76,28 @@
  *
  * By default this is 1X the maximum MTU
  */
-#ifndef MBED_CONF_BLE_DFU_SERVICE_RX_FC_UNPAUSE_THRESHOLD
-#define MBED_CONF_BLE_DFU_SERVICE_RX_FC_UNPAUSE_THRESHOLD BLE_DFU_SERVICE_MAX_DATA_LEN
-#endif
-
-/**
- * Maximum number of slots available
- */
-#ifndef MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS
-#define MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS 3
+#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_FC_UNPAUSE_THRESHOLD
+#define MBED_CONF_BLE_FOTA_SERVICE_RX_FC_UNPAUSE_THRESHOLD BLE_FOTA_SERVICE_MAX_DATA_LEN
 #endif
 
 /**
  * Bit flags
  */
-#define DFU_CTRL_ENABLE_BIT         (1 << 0)
-#define DFU_CTRL_COMMIT_BIT         (1 << 1)
-#define DFU_CTRL_DELTA_MODE_EN_BIT  (1 << 2)
-#define DFU_CTRL_FC_PAUSE_BIT       (1 << 7)
+#define FOTA_CTRL_ENABLE_BIT         (1 << 0)
+#define FOTA_CTRL_COMMIT_BIT         (1 << 1)
+/* Bits 2-6 are reserved */
+#define FOTA_CTRL_FC_PAUSE_BIT       (1 << 7)
 
-/* Bitmask of read-only bits in the DFU Ctrl bit set */
-#define DFU_CTRL_READONLY_BITS      (DFU_CTRL_FC_PAUSE_BIT)
+/* Bitmask of read-only bits in the FOTA Ctrl bit set */
+#define FOTA_CTRL_READONLY_BITS      (FOTA_CTRL_FC_PAUSE_BIT)
 
 /**
  * UUIDs
  */
 namespace uuids {
-namespace DFUService {
+namespace FOTAService {
 
     extern const char BaseUUID[];
-    extern const char SlotUUID[];
     extern const char OffsetUUID[];
     extern const char BinaryStreamUUID[];
     extern const char ControlUUID[];
@@ -116,7 +108,7 @@ namespace DFUService {
 
 /**
  * API Brainstorm:
- * DFU service will have several characteristics:
+ * FOTA service will have several characteristics:
  * - Current Offset (Read/Write), gives the offset address, in bytes, of the write pointer
  *      --- Writes to this characteristic while there is data in binary data stream buffer will be rejected.
  *      A rejected write will initiate flushing the buffer to the selected slot block device.
@@ -126,15 +118,15 @@ namespace DFUService {
  * - Binary Data stream, variable-length array characteristic for streaming the update in binary.
  *      The underlying block device will be written at the offset given by current offset for each byte written to this characteristic.
  *      The offset is incremented for each byte written
- * - DFU Control Characteristic
+ * - FOTA Control Characteristic
  *      - Notify/Indicate/Read (for flow control bit mainly)
  *      - Write (w/ response), ability to add security requirements
  *      - Bit flags:
- *      --- DFU Enable, DFU abort = write 0 during update
- *      --- DFU Commit
+ *      --- FOTA Enable, FOTA abort = write 0 during update
+ *      --- FOTA Commit
  *      --- Delta mode (any skipped sections will be written with existing app data)
  *      --- Flow Control Bit (if set, peer should pause writing to binary stream characteristic)
- *      - Write is only allowed if DFU is currently allowed
+ *      - Write is only allowed if FOTA is currently allowed
  *      - Allows application/device to prepare for an update (cache/save data, shutdown certain things, erase/prepare flash area)
  * - Status characteristic
  *      - Notify/Indicate/Read
@@ -158,11 +150,9 @@ namespace DFUService {
  * - Control bitflags class? Use std::bitset?
  *
  */
-#if BLE_FEATURE_GATT_SERVER
-
-class DFUService : public ble::GattServer::EventHandler,
-                   public ble::Gap::EventHandler,
-                   private mbed::NonCopyable<DFUService> {
+class FOTAService : public ble::GattServer::EventHandler,
+                    public ble::Gap::EventHandler,
+                    private mbed::NonCopyable<FOTAService> {
 
 public:
 
@@ -171,44 +161,44 @@ public:
      * As per Bluetooth Core specification V5.2, Vol 3, Part F, Table 3.4 (Error Codes)
      * ATT Error Codes between 0x80 and 0x9F are reserved for use by the application
      *
-     * These error codes are valid for the DFUService application layer in addition to those
+     * These error codes are valid for the FOTAService application layer in addition to those
      * defined in the GattAuthCallbackReply_t enum.
      */
     enum ApplicationError_t {
-        AUTH_CALLBACK_REPLY_ATTERR_APP_NOT_ALLOWED      = 0x019C, /** Response when client attempts to enable DFU when disallowed */
+        AUTH_CALLBACK_REPLY_ATTERR_APP_NOT_ALLOWED      = 0x019C, /** Response when client attempts to enable FOTA when disallowed */
         AUTH_CALLBACK_REPLY_ATTERR_APP_READONLY         = 0x019D, /** A write request was made that modifies data that is read-only */
-        AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY             = 0x019E, /** DFUService is busy (eg: flush in progress) */
+        AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY             = 0x019E, /** FOTAService is busy (eg: flush in progress) */
         AUTH_CALLBACK_REPLY_ATTERR_APP_INVALID_SLOT_NUM = 0x019F, /** Client requested invalid slot index */
     };
 
     /**
-     * DFU-specific status codes
+     * FOTA-specific status codes
      */
     enum StatusCode_t{
-        DFU_STATE_IDLE                      = 0x00, /** Neutral state */
-        DFU_STATE_UPDATE_SUCCESSFUL         = 0x01,
-        DFU_STATE_UNKNOWN_FAILURE           = 0x02,
-        DFU_STATE_VALIDATION_FAILURE        = 0x03, /** Validation/Authentication of update candidate failed */
-        DFU_STATE_INSTALLATION_FAILURE      = 0x04, /** Installation of update candidate failed */
-        DFU_STATE_APPLICATION_OVERSIZE      = 0x05, /** Update candidate exceeded memory bounds */
-        DFU_STATE_FLASH_ERROR               = 0x06, /** Flash error */
-        DFU_STATE_HARDWARE_ERROR            = 0x07, /** Hardware failure */
+        FOTA_STATE_IDLE                      = 0x00, /** Neutral state */
+        FOTA_STATE_UPDATE_SUCCESSFUL         = 0x01,
+        FOTA_STATE_UNKNOWN_FAILURE           = 0x02,
+        FOTA_STATE_VALIDATION_FAILURE        = 0x03, /** Validation/Authentication of update candidate failed */
+        FOTA_STATE_INSTALLATION_FAILURE      = 0x04, /** Installation of update candidate failed */
+        FOTA_STATE_APPLICATION_OVERSIZE      = 0x05, /** Update candidate exceeded memory bounds */
+        FOTA_STATE_FLASH_ERROR               = 0x06, /** Flash error */
+        FOTA_STATE_HARDWARE_ERROR            = 0x07, /** Hardware failure */
 
-        DFU_STATE_SYNC_LOSS_BIT             = 0x80, /** If the MSbit is set in the status, the 7LSB indicate the sequence ID at which sync was lost */
+        FOTA_STATE_SYNC_LOSS_BIT             = 0x80, /** If the MSbit is set in the status, the 7LSB indicate the sequence ID at which sync was lost */
 
     };
 
     /**
-     * Class encapsulating a change to the DFU control characteristic
+     * Class encapsulating a change to the FOTA control characteristic
      */
     class ControlChange {
 
-        /* Allow DFUService to instantiate ControlChange instances */
-        friend DFUService;
+        /* Allow FOTAService to instantiate ControlChange instances */
+        friend FOTAService;
 
     public:
 
-        const DFUService& service() const {
+        const FOTAService& service() const {
             return _dfu_svc;
         }
 
@@ -222,14 +212,14 @@ public:
 
     protected:
 
-        ControlChange(DFUService& service, uint8_t value) :
+        ControlChange(FOTAService& service, uint8_t value) :
             _dfu_svc(service), _old_value(service.get_dfu_control_bits()),
             _new_value(value) {
         }
 
     protected:
 
-        DFUService& _dfu_svc;
+        FOTAService& _dfu_svc;
 
         uint8_t _old_value;
         uint8_t _new_value;
@@ -239,29 +229,29 @@ public:
 public:
 
     /**
-     * Instantiate a DFUService instance
+     * Instantiate a FOTAService instance
      * @param[in] bd BlockDevice to use for storing update candidates in slot 0
      * @param[in] queue EventQueue to process memory writes on
      * @param[in] fw_rev Optional, Current firmware revision string
      * @param[in] dev_desc Optional, Description of the device that this firmware is executed on
      *
-     * @note The optional parameters MUST be supplied if your GattServer has multiple DFUService
-     * instances available. They are optional if your GattServer has only one DFUService instance.
-     * Each DFUService must implement a firmware revision characteristic with an
+     * @note The optional parameters MUST be supplied if your GattServer has multiple FOTAService
+     * instances available. They are optional if your GattServer has only one FOTAService instance.
+     * Each FOTAService must implement a firmware revision characteristic with an
      * associated characteristic user description descriptor that uniquely identifies
-     * the device that executes the firmware targeted by the DFUService.
+     * the device that executes the firmware targeted by the FOTAService.
      */
-    DFUService(mbed::BlockDevice *bd, events::EventQueue &queue,
+    FOTAService(mbed::BlockDevice *bd, events::EventQueue &queue,
             const char *fw_rev = nullptr, const char *dev_desc = nullptr);
 
-    virtual ~DFUService();
+    virtual ~FOTAService();
 
     uint8_t get_dfu_control_bits() const {
         return _dfu_control;
     }
 
     bool is_dfu_enabled() const {
-        return (_dfu_control & DFU_CTRL_ENABLE_BIT);
+        return (_dfu_control & FOTA_CTRL_ENABLE_BIT);
     }
 
     void start(BLE &ble_interface);
@@ -270,7 +260,7 @@ public:
 
     /**
      * Register a callback to be executed when a write request occurs for the
-     * DFU Control characteristic. The application may then accept or reject the
+     * FOTA Control characteristic. The application may then accept or reject the
      * requested changes as appropriate.
      *
      * @param[in] cb Application callback or nullptr to deregister
@@ -284,7 +274,7 @@ public:
 
     /**
      * Register a callback to be executed when a write is committed to the
-     * DFU Control characteristic
+     * FOTA Control characteristic
      *
      * @param[in] cb Application callback or nullptr to deregister
      *
@@ -316,17 +306,17 @@ protected:
     void schedule_write(void) {
         if(!_scheduled_write) {
             _scheduled_write = _queue.call(
-                    mbed::callback(this, &DFUService::process_buffer));
+                    mbed::callback(this, &FOTAService::process_buffer));
         }
     }
 
     /**
-     * Set the status of the DFUService and notify any subscribed peers
+     * Set the status of the FOTAService and notify any subscribed peers
      */
     void set_status(uint8_t status);
 
     /**
-     * Set the DFU control characteristic and notify any subscribedd peers
+     * Set the FOTA control characteristic and notify any subscribedd peers
      */
     void set_dfu_ctrl(uint8_t ctrl);
 
@@ -337,8 +327,8 @@ protected:
      */
     inline void set_fc_bit(void) {
         mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        if(!(_dfu_control & DFU_CTRL_FC_PAUSE_BIT)) {
-            set_dfu_ctrl(_dfu_control | DFU_CTRL_FC_PAUSE_BIT);
+        if(!(_dfu_control & FOTA_CTRL_FC_PAUSE_BIT)) {
+            set_dfu_ctrl(_dfu_control | FOTA_CTRL_FC_PAUSE_BIT);
         }
     }
 
@@ -349,8 +339,8 @@ protected:
      */
     inline void clear_fc_bit(void) {
         mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        if(_dfu_control & DFU_CTRL_FC_PAUSE_BIT) {
-            set_dfu_ctrl(_dfu_control & ~(DFU_CTRL_FC_PAUSE_BIT));
+        if(_dfu_control & FOTA_CTRL_FC_PAUSE_BIT) {
+            set_dfu_ctrl(_dfu_control & ~(FOTA_CTRL_FC_PAUSE_BIT));
         }
     }
 
@@ -405,9 +395,9 @@ protected:
     uint32_t _current_offset = 0;
 
     /** RX Buffer for binary serial */
-    uint8_t _rxbuf[BLE_DFU_SERVICE_MAX_DATA_LEN] = { 0 };
+    uint8_t _rxbuf[BLE_FOTA_SERVICE_MAX_DATA_LEN] = { 0 };
 
-    /** DFU control */
+    /** FOTA control */
     uint8_t _dfu_control = 0;
 
     /** Update status */
@@ -437,14 +427,14 @@ protected:
     GattServer *_server;
 
     /** Slot BlockDevices */
-    mbed::BlockDevice *_slot_bds[MBED_CONF_BLE_DFU_SERVICE_MAX_SLOTS];
+    mbed::BlockDevice *_slot_bds[MBED_CONF_BLE_FOTA_SERVICE_MAX_SLOTS];
 
     /** Application callbacks */
     mbed::Callback<GattAuthCallbackReply_t(ControlChange&)> _ctrl_req_cb = nullptr;
     mbed::Callback<void(ControlChange&)> _ctrl_update_cb = nullptr;
 
     /** Internal circular buffer */
-    mbed::CircularBuffer<uint8_t, MBED_CONF_BLE_DFU_SERVICE_RX_BUFFER_SIZE> _bin_stream_buf;
+    mbed::CircularBuffer<uint8_t, MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE> _bin_stream_buf;
 
     /** Flush binary stream buffer flag */
     bool _flush_bin_buf = false;
@@ -462,7 +452,7 @@ protected:
 
 };
 
-#endif //BLE_FEATURE_GATT_SERVER
+#endif /* BLE_FEATURE_GATT_SERVER */
 
 
-#endif /* MBED_OS_EXPERIMENTAL_BLE_SERVICES_SERVICES_INC_DFUSERVICE_H_ */
+#endif /* FOTA_SERVICE_H */

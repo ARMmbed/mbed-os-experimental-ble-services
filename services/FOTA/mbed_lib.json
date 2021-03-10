@@ -1,5 +1,5 @@
 {
-    "name": "ble-dfu-service",
+    "name": "ble-fota-service",
     "config": {
         "rx-buffer-size": {
             "help": "Size of binary data stream receive buffer in bytes",
