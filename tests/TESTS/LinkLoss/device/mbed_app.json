@@ -3,20 +3,10 @@
         "*": {
             "platform.stdio-baud-rate": 115200
         },
-        "K64F": {
-            "target.components_add": ["BlueNRG_MS"],
-            "target.features_add": ["BLE"],
-            "target.extra_labels_add": ["CORDIO"]
-        },
-        "NUCLEO_F401RE": {
-            "target.components_add": ["BlueNRG_MS"],
-            "target.features_add": ["BLE"],
-            "target.extra_labels_add": ["CORDIO"]
-        },
         "NRF52840_DK": {
             "target.features_add": ["BLE"]
         },
-        "NRF52_DK": {
+        "DISCO_L496AG": {
             "target.features_add": ["BLE"]
         }
     }
