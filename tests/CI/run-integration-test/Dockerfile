@@ -1,3 +1,3 @@
-FROM mbedos/mbed-os-env:latest
+FROM mbedos/mbed-os-env-cmake:latest
 RUN pip3 install virtualenv mbed-tools
 ENTRYPOINT ["tests/CI/tests.sh"]
