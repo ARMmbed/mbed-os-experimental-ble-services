@@ -51,11 +51,7 @@ fi
 cd venv
 
 # Activate virtual environment
-if windows; then
-  source Scripts/activate
-else
-  source bin/activate
-fi
+source ./activate.sh
 
 # Install mbed-os requirements
 pip install -r ../../mbed-os/requirements.txt

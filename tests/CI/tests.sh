@@ -18,6 +18,8 @@ source ../../activate.sh
 # Link Loss Service builds
 cd ../TESTS/LinkLoss/device
 mbed compile -t GCC_ARM -m NRF52840_DK
-mbed-tools compile -t GCC_ARM -m NRF52840_DK
+# TODO: support new tools
+# mbed-tools compile -t GCC_ARM -m NRF52840_DK
 mbed compile -t GCC_ARM -m DISCO_L496AG
-mbed-tools compile -t GCC_ARM -m DISCO_L496AG
+# TODO: support new tools
+# mbed-tools compile -t GCC_ARM -m DISCO_L496AG
