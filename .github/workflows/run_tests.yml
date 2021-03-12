@@ -1,0 +1,48 @@
+name: Run tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  run-unit-tests:
+      name: Run unit tests
+      runs-on: ubuntu-latest
+      container: mbedos/mbed-os-env:latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+
+        - name: Install dependencies
+          run: |
+            apt-get update && apt-get install -y valgrind gcovr
+            pip3 install virtualenv
+            pip3 install mbed-tools --upgrade
+
+        - name: Run unit tests
+          run: ./tests/unittests.sh
+
+        - name: Upload coverage result
+          uses: actions/upload-artifact@v2
+          with:
+            name: gcovr coverage result
+            path: tests/coverage.html
+
+  run-integration-tests:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    container: mbedos/mbed-os-env:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y valgrind gcovr
+          pip3 install virtualenv
+          pip3 install mbed-tools --upgrade
+
+      - name: Run integration tests
+        run: |
+          ./tests/tests.sh -s LinkLoss -t GCC_ARM -m NRF52840_DK
+          ./tests/tests.sh -s LinkLoss -t GCC_ARM -m DISCO_L496AG
