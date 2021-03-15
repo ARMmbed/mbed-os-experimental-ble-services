@@ -24,11 +24,12 @@ target_sources(${TEST_NAME}
 target_link_libraries(${TEST_NAME}
     PRIVATE
         # add any stubs, mocks or fakes you need here
-        mbed-os-fakes-ble
-        mbed-os-fakes-event-queue
+        mbed-fakes-ble
+        mbed-fakes-event-queue
         # these are libraries that provided include paths of real mbed-os headers
-        mbed-os-headers-base
-        mbed-os-headers-platform
+        mbed-headers-base
+        mbed-headers-platform
+        mbed-headers-connectivity
         # if you're using googletest this is required
         gmock_main
 )
