@@ -124,6 +124,7 @@ The standard status codes are:
 | 0x08        | OUT OF MEMORY        | The underlying memory is full                    |
 | 0x09        | MEMORY ERROR         | Error writing to underlying memory device        |
 | 0x0A        | HARDWARE ERROR       | Hardware failure                                 |
+| 0x0B        | NO FOTA SESSION      | No FOTA session started                          |
 | 0x0B-0x40   | Reserved             | Reserved for future use by base FOTA service     |
 
 ### Software Flow Control
@@ -168,6 +169,54 @@ Additionally, there is a conditionally optional Characteristic User Description 
 If there are multiple FOTA services or multiple Firmware Revision String characteristics, this descriptor is **mandatory**.
 
 The contents of this descriptor should be a string that describes the module that this FOTA service instance updates the firmware of, eg: "cellular modem", "coprocessor", etc.
+
+## Sequence Diagrams
+
+The following sections show sequence diagrams of possible situations during a FOTA session.
+
+### Starting a FOTA Session
+
+This section shows two possible cases for starting a FOTA Session: **immediate start** and **delayed start**
+
+The application is responsible for implementing the necessary logic in the `FOTAService::EventHandler` to perform either FOTA start types.
+
+Each sequence diagram assumes the following preconditions:
+
+- There is an existing BLE connection between the FOTA client and FOTA target
+- Depending on how the FOTA service is configured with regard to security, link security may be established as required (ie: paired/bonded, link is encrypted).
+- A FOTA session has not been started
+
+#### Immediate Start
+
+To start a FOTA Session, the FOTA client must write the FOTA Start Op-code to the FOTA Control Characteristic. In the immediate start case, the FOTA target replies immediately with a status notification of **either** `OK` or `XON`. The FOTA client should interperet either of these as a positive response and proceed with the FOTA session immediately:
+
+![fota-immediate-start.png](img/fota-immediate-start.png]
+
+#### Delayed Start
+
+The delayed start allows a FOTA target to perform any required preparations before a FOTA session begins. Preparations may include actions such as:
+- indicate the FOTA session start to the device user through UI or LEDs
+- erase the update memory
+
+**Note:** If the preparations can block for a long period of time (eg: erasing an entire SPI flash chip), they should be either:
+- Run on a separate `Thread`/`EventQueue`
+- Or, in the baremetal (RTOS-less) case, the preparations should be broken up into shorter operations (eg: erase a single sector of the external SPI flash)
+
+If the preparations block for a long period of time, the BLE connection could be terminated due to timeout. Therefore, preprations should periodically allow BLE events to be processed to ensure the connection does not timeout.
+
+![fota-delayed-start.png](img/fota-delayed-start.png]
+
+#### False Start
+
+If the FOTA client attempts to write the BSC before starting a FOTA session, the FOTA client will issue a status notification with the status code: `NO_FOTA_SESSION`:
+
+![fota-false-start.png](img/fota-false-start.png]
+
+This is referred to as a "FOTA False Start."
+
+### FOTA Session
+
+During a FOTA session, the FOTA client may write firmware binary information to the BSC with the packet format outlined in the previous "Binary Stream Characteristic" section.
 
 ## Documentation Tools
 
