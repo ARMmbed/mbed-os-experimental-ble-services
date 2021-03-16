@@ -1,5 +1,0 @@
-# LaTeX
-
-This directory contains the [LaTeX](https://www.latex-project.org/) source for generating some of the images used in this service's documentation.
-
-Protocol packet structure diagrams were generated using the [bytefield package](https://ctan.org/pkg/bytefield).

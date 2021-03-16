@@ -2,19 +2,15 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{longtable}
 \usepackage[bitheight=6ex]{bytefield}
+\newcommand{\code}{\texttt}
 \begin{document}
 \begin{figure}[htbp]
   \centering
   \begin{bytefield}{8}
-    \begin{rightwordgroup}{Total length up to MTU}
-      \bitheader{0,7} \\
-      \wordbox{1}{Sequential Fragment ID} \\
-      \wordbox{1}{Data Byte 1} \\
-      \wordbox[]{1}{$\vdots$} \\[1ex]
-      \wordbox{1}{Data Byte N} \\
-    \end{rightwordgroup} \\
+    \bitheader{0,7} \\
+    \wordbox{1}{\code{SYNC LOST}} \\
+    \wordbox{1}{Expected Fragment ID}\\
   \end{bytefield}
   \label{fig:packet-format}
 \end{figure}
-
 \end{document}
