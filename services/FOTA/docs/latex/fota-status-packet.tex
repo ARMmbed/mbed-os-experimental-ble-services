@@ -1,0 +1,21 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage[bitheight=6ex]{bytefield}
+\begin{document}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{8}
+      \bitheader{0,7} \\
+      \wordbox{1}{Status Code} \\
+      \begin{rightwordgroup}{Optional parameter bytes to extend FOTA service}   
+      \wordbox{1}{Parameter Byte 1} \\
+      \wordbox[]{1}{$\vdots$} \\[1ex]
+      \wordbox{1}{Parameter Byte N} \\
+    \end{rightwordgroup} \\
+  \end{bytefield}
+  \caption{FOTA Status Characteristic Packet Format}
+  \label{fig:packet-format}
+\end{figure}
+
+\end{document}
