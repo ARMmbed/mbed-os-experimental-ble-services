@@ -139,7 +139,7 @@ Each write to the BSC must begin with the sequential 8-bit fragment ID of the tr
 
 The FOTA client must recognize this condition and correct it by returning to the appropriate location in the firmware binary being transferred  (as indicated by the expected fragment ID sent by the FOTA target) and resume transmission from there.
 
-If the FOTA client misses a `SYNC_LOST` notification, the FOTA target will issue another `SYNC_LOST` notification upon reception of the next (out of sync) packet written to the BSC. A possible edge case in this scenario is if the FOTA client finishes writing the firmware binary without successfully receiving a `SYNC_LOST` notification. To catch this error, the FOTA client should read the FOTA Status Characteristic before attempting to issue a `FOTA Commit` command, and correct the out-of-sync condition as described earlier.
+If the FOTA client misses a `SYNC_LOST` notification, the FOTA target will issue another `SYNC_LOST` notification upon reception of the next (out of sync) packet written to the BSC. A possible edge case in this scenario is if the FOTA client finishes writing the firmware binary without successfully receiving a `SYNC_LOST` notification.
 
 If the FOTA client attempts to issue a `FOTA Commit` command while the FOTA target is in an out-of-sync state, the FOTA target will respond with the ATT error code `AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC` and issue another `SYNC_LOST` notification on the FOTA Status Characteristic.
 
@@ -168,11 +168,11 @@ If there are multiple FOTA services or multiple Firmware Revision String charact
 
 The contents of this descriptor should be a string that describes the module that this FOTA service instance updates the firmware of, eg: "cellular modem", "coprocessor", etc.
 
-## Sequence Diagrams
+# Sequence Diagrams
 
 The following sections show sequence diagrams of possible situations during a FOTA session.
 
-### Starting a FOTA Session
+## Starting a FOTA Session
 
 This section shows two possible cases for starting a FOTA Session: **immediate start** and **delayed start**
 
@@ -184,13 +184,13 @@ Each of the following sequence diagrams assumes the following preconditions:
 - Depending on how the FOTA service is configured with regard to security, link security may be established as required (ie: paired/bonded, link is encrypted).
 - A FOTA session has not been started
 
-#### Immediate Start
+### Immediate Start
 
 To start a FOTA Session, the FOTA client must write the FOTA Start Op-code to the FOTA Control Characteristic. In the immediate start case, the FOTA target replies immediately with a status notification of **either** `OK` or `XON`. The FOTA client should interperet either of these as a positive response and proceed with the FOTA session immediately:
 
 ![fota-immediate-start.png](img/fota-immediate-start.png)
 
-#### Delayed Start
+### Delayed Start
 
 The delayed start allows a FOTA target to perform any required preparations before a FOTA session begins. Preparations may include actions such as:
 - indicate the FOTA session start to the device user through UI or LEDs
@@ -204,7 +204,7 @@ If the preparations block for a long period of time, the BLE connection could be
 
 ![fota-delayed-start.png](img/fota-delayed-start.png)
 
-#### False Start
+### False Start
 
 If the FOTA client attempts to write the BSC before starting a FOTA session, the FOTA client will issue a status notification with the status code: `NO_FOTA_SESSION`:
 
@@ -212,19 +212,19 @@ If the FOTA client attempts to write the BSC before starting a FOTA session, the
 
 This is referred to as a "FOTA False Start."
 
-#### Not Ready
+### Not Ready
 
 If the FOTA client is in the process of performing a critical function it may reject a FOTA start call with the `AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY` write response.
 
 ![fota-start-not-ready.png](img/fota-start-not-ready.png)
 
-### FOTA Session
+## FOTA Session
 
 During a FOTA session, the FOTA client may write firmware binary information to the BSC with a packet format outlined in the previous "Binary Stream Characteristic" section.
 
 Each of the following sequence diagrams assumes the following preconditions: A FOTA session **has** been started
 
-#### Normal FOTA
+### Normal FOTA
 
 During a normal FOTA session without any packet loss, the following sequence diagrams apply.
 
@@ -236,7 +236,7 @@ After a number of packets, the fragment ID will roll over:
 
 ![fota-session-rollover.png](img/fota-session-rollover.png)
 
-#### Flow Control
+### Flow Control
 
 Depending on the application, processing the BSC data may take longer than the time between received packets. In this case, the FOTA target may choose to buffer the packets. If the packet buffer overflows, data may be lost. To prevent this condition, the FOTA service implements software flow control through the Status characteristic, as described previously. Flow control during a FOTA session is described by the below sequence diagram:
 
@@ -246,29 +246,27 @@ As mentioned above, writes to the BSC after an XOFF status has been set will be 
 
 ![fota-flow-ignore.png](img/fota-flow-ignore.png)
 
-It is recommended that the FOTA client periodically read the FOTA Status Characteristic when binary transmission has been paused to ensure it will receive the `XON` status update. This is to handle the case where the FOTA client missed a previous `XON` status notification:
+It is recommended that the FOTA client periodically attempt to write the next packet to the BSC and listen for a negative `XOFF` status notification. This is to handle the case where the FOTA client missed a previous `XON` status notification.
 
-![fota-swfc-read.png](img/fota-swfc-read.png)
+The FOTA client may also read the Status characteristic to detect the `XON` state in case the `XON` notification was missed. Also note that it is possible for the Status characteristic to change from `XON/XOFF` to any other status (eg: `MEMORY ERROR`) even while flow control is active, so it is recommended that the FOTA client cache the flow control state. The FOTA target also caches the flow control state and will renotify the FOTA client during a subsequent BSC write (if flow is paused) as described above.
 
-Also note that it is possible for the Status characteristic to change from `XON/XOFF` to any other status (eg: `MEMORY ERROR`) even while flow control is active, so it is recommended that the FOTA client cache the flow control state. The FOTA target also caches the flow control state and will renotify the FOTA client during a subsequent BSC write as described above.
-
-#### Sync Lost Event
+### Sync Lost Event
 
 If a packet is lost during a FOTA session, the fragment ID expected by the FOTA target will not match the fragment ID of the next packet received from the FOTA client.
 
-### Ending a FOTA Session
+## Ending a FOTA Session
 
-#### FOTA Commit
+### FOTA Commit
 
 Once the firmware binary has been fully transferred, the FOTA client shall write the `FOTA Commit` op-code to the Control characteristic
 
-#### Immediate Validation
+### Immediate Validation
 
-#### Deferred Validation
+### Deferred Validation
 
-#### FOTA Abort
+### FOTA Abort
 
-## Documentation Tools
+# Documentation Tools
 
 Tools used to generate this documentation include PlantUML, LaTeX, and [tablesgenerator.com](https://www.tablesgenerator.com/markdown_tables#).
 
