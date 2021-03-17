@@ -53,6 +53,8 @@ The application ATT error codes defined/reserved by the FOTA Service are tabulat
 
 Any unhandled op-codes will trigger a write response error code of `AUTH_CALLBACK_REPLY_ATTERR_UNSUPPORTED_OPCODE`.
 
+There are multiple response error codes that may be used by the user's `EventHandler` implementation to reject a FOTA session. These include `AUTH_CALLBACK_REPLY_ATTERR_LOW_BATTERY`, which indicates the FOTA session was rejected due to a low battery as well as `AUTH_CALLBACK_REPLY_ATTERR_HW_INHIBIT`, which indicates the FOTA session was rejected by some other inhibiting hardware state (eg: device in use).
+
 Most standard operations use only 1 byte and have no parameters. The first byte written to the FOTA Control Characteristic is the command op-code. 
 
 Several standard op-codes are defined and support for them is mandatory. The application is free to use any unreserved op-codes to extend the available FOTA features.
@@ -69,33 +71,7 @@ The standard op-codes are:
 
 An example of an extension op-code that could be added by the application is the ability to select from multiple "memory slots" where the binary stream can be written to.
 
-### FOTA Start
-
-The FOTA Start command starts a FOTA update session. This allows the user's application to perform any necessary preparations before beginning an update session. eg: shutdown other subsystems, close files, update the UI to indicate the update to the device user, erase flash memory in preparation to receive the update binary, etc.
-
-The FOTA target may choose to issue an immediate `XOFF` status notification to pause binary transmission until all preparations have been completed. Otherwise, the FOTA target, if ready, will issue an `OK` status notification.
-
-In this case, the FOTA client should not commence binary transmission until the FOTA target has issued an `XON` status notification. See the FOTA Status Characteristic section below for more information on software flow control.
-
-### FOTA Stop
-
-The FOTA Stop command is used to immediately terminate (ie: abort) a FOTA session. It is application-specific whether this removes the incomplete binary from memory. This command will reset the internal state of the FOTA service. The transferred firmware binary will not be installed or validated.
-
-### FOTA Commit
-
-The FOTA Commit command should be issued after the FOTA client has finished transferring all firmware binary data. This command initiates validation and installation of the transferred firmware binary on the FOTA target.
-
-The details of the FOTA Commit operation are not defined by the FOTA Service specification. Common operations performed during a FOTA Commit operation may include:
-
-- Validating the transferred binary using a digital signature scheme
-- Gracefully shutting down application subsystems in preparation for a device reset
-- Initiating a BLE disconnection
-
-In some cases, digital signature verification and binary installation are performed by a bootloader *and not* the application. Therefore, the success of the update may not be available during the same BLE connection that a FOTA session took place. ie: the FOTA target may have to reset itself so the bootloader can perform verification and installation of the update. This is referred to as **deferred update validation**.
-
-If the update success status *is* available during the same BLE connection that a FOTA session took place, this is referred to as **immediate update validation**
-
-See the below section on the FOTA Status Characteristic to learn the recommended methods for communicating update success or failure in both the immediate and deferred validation cases.
+Each of the standard op-codes is discussed in more detail in the following "Sequence Diagrams" section.
 
 ## FOTA Status Characteristic
 
@@ -147,11 +123,7 @@ If the FOTA client attempts to issue a `FOTA Commit` command while the FOTA targ
 
 The FOTA service does not place any requirements on the FOTA target application to communicate update success status to the FOTA client. However, the FOTA service *does* have provisions to communicate update success status.
 
-As mentioned above, there are typically two cases for validating/installing firmware updates, **deferred** and **immediate**.
-
-In the **deferred** validation case, the recommended process is described in the sequence diagram below:
-
-
+See the "Ending a FOTA session" section below for more information on communicating update success.
 
 ## Firmware Revision String Characteristic
 
@@ -174,9 +146,15 @@ The following sections show sequence diagrams of possible situations during a FO
 
 ## Starting a FOTA Session
 
+Writing the FOTA Start command to the Control characteristic starts a FOTA update session. This allows the user's application to perform any necessary preparations before beginning an update session. eg: shutdown other subsystems, close files, update the UI to indicate the update to the device user, erase flash memory in preparation to receive the update binary, etc.
+
+The FOTA target may choose to issue an immediate `XOFF` status notification to pause binary transmission until all preparations have been completed. Otherwise, the FOTA target, if ready, will issue an `OK` status notification.
+
+In the prior case, the FOTA client should not commence binary transmission until the FOTA target has issued an `XON` status notification. See the flow control section for more information on software flow control.
+
 This section shows two possible cases for starting a FOTA Session: **immediate start** and **delayed start**
 
-The application is responsible for implementing the necessary logic in the `FOTAService::EventHandler` to perform either FOTA start types.
+The application is responsible for implementing the necessary logic in the `FOTAService::EventHandler` to perform either FOTA start types, as required.
 
 Each of the following sequence diagrams assumes the following preconditions:
 
@@ -252,19 +230,47 @@ The FOTA client may also read the Status characteristic to detect the `XON` stat
 
 ### Sync Lost Event
 
-If a packet is lost during a FOTA session, the fragment ID expected by the FOTA target will not match the fragment ID of the next packet received from the FOTA client.
+If a packet is lost during a FOTA session, the fragment ID expected by the FOTA target will not match the fragment ID of the next packet received from the FOTA client. As described earlier, the FOTA target will notify the `SYNC_LOST` state with the expected fragment ID as an additional parameter. The FOTA client must return to the packet matching the expected fragment ID and begin retransmission from there:
+
+![fota-sync-lost.png](img/fota-sync-lost.png)
 
 ## Ending a FOTA Session
 
 ### FOTA Commit
 
-Once the firmware binary has been fully transferred, the FOTA client shall write the `FOTA Commit` op-code to the Control characteristic
+Once the firmware binary has been fully transferred, the FOTA client shall write the `FOTA Commit` op-code to the Control characteristic.. This command initiates validation and installation of the transferred firmware binary on the FOTA target.
 
-### Immediate Validation
+If the FOTA client attempts to issue a `FOTA Commit` command while the FOTA target is in an out-of-sync state, the FOTA target will respond with the ATT error code `AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC` and issue another `SYNC_LOST` notification on the FOTA Status Characteristic.
 
-### Deferred Validation
+The details of the FOTA Commit operation are not defined by the FOTA Service specification. Common operations performed during a FOTA Commit operation may include:
+
+- Validating the transferred binary using a digital signature scheme
+- Gracefully shutting down application subsystems in preparation for a device reset
+- Initiating a BLE disconnection
+
+### Communicating Update Success: Deferred Validation
+
+In some cases, digital signature verification and binary installation are performed by a bootloader *and not* the application. Therefore, the success of the update may not be available during the same BLE connection that a FOTA session took place. ie: the FOTA target may have to reset itself so the bootloader can perform verification and installation of the update. This is referred to as **deferred update validation**.
+
+A deferred update validation may follow a process similar to the following:
+
+![fota-deferred-validation.png](img/fota-deferred-validation.png)
+
+The sequence diagram is similar for the case where a firmware update candidate fails to be validated.
+
+### Communicating Update Success: Immediate Validation
+
+If the update success status *is* available during the same BLE connection that a FOTA session took place, this is referred to as **immediate update validation**.
+
+![fota-immediate-validation.png](img/fota-immediate-validation.png)
+
+The sequence diagram is similar for the case where a firmware update candidate fails to be validated.
+
+Obviously, this scheme simplifies the FOTA client logic, but it also introduces a depedency that the application has the means to validate firmware updates itself (ie: access to signing keys and other sensitive information).
 
 ### FOTA Abort
+
+The FOTA Stop command is used to immediately terminate (ie: abort) a FOTA session. It is application-specific whether this removes the incomplete binary from memory. This command will reset the internal state of the FOTA service. The transferred firmware binary will not be installed or validated.
 
 # Documentation Tools
 
