@@ -22,6 +22,9 @@ RUN useradd -s /bin/bash -u $USER_UID -g $USER_GID -G docker -m $USERNAME
 RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME
 RUN chmod 0440 /etc/sudoers.d/$USERNAME
 
+# Give user access to toolchan
+RUN chmod 755 /root
+
 # ********************************************************
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
