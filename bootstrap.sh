@@ -57,3 +57,6 @@ pip install -r tests/mbed-os/requirements.txt
 
 # Install testing requirements
 pip install -r tests/TESTS/requirements.txt
+
+# Install cli and tools
+pip install --upgrade mbed-cli mbed-tools

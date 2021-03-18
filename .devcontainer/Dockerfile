@@ -15,7 +15,6 @@ RUN apt-get install -y locales && localedef -i en_US -c -f UTF-8 -A /usr/share/l
 RUN apt-get -fy install vim sudo bash-completion build-essential gdb docker.io
 RUN apt-get update && apt-get install -y valgrind gcovr
 RUN pip3 install virtualenv
-RUN pip3 install mbed-tools --upgrade
 
 # Create the user
 RUN groupadd -g $USER_GID $USERNAME
