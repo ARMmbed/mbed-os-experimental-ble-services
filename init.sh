@@ -13,17 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-# Test if script is running on windows
-windows() {
-    [[ -n "$WINDIR" ]];
-}
+# Reload .bashrc settings
+source ~/.bashrc
 
 # Activate virtual environment
-if windows; then
-  source tests/TESTS/venv/Scripts/activate
-else
-  source tests/TESTS/venv/bin/activate
-fi
+source activate.sh
