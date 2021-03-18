@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
 
 # Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/.. || exit
 
 # Load symlink script
-source symlink.sh
+source scripts/symlink.sh
 
 # Clone mbed-os
 if [ -d "tests/mbed-os" ]
@@ -50,7 +49,7 @@ else
 fi
 
 # Activate virtual environment
-source activate.sh
+source scripts/activate.sh
 
 # Install mbed-os requirements
 pip install -r tests/mbed-os/requirements.txt

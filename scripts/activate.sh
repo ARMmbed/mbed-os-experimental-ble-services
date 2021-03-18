@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/.. || exit
 
 # Test if script is running on windows
 windows() {

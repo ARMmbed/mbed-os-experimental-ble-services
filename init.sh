@@ -17,4 +17,4 @@
 source ~/.bashrc
 
 # Activate virtual environment
-source activate.sh
+source scripts/activate.sh

@@ -19,10 +19,10 @@ set -e
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
 
 # Bootstrap of the environment
-./bootstrap.sh
+./scripts/bootstrap.sh
 
 # Activate virtual environment
-source activate.sh
+source scripts/activate.sh
 
 cd tests
 
