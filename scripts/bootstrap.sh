@@ -21,17 +21,18 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/.. || exit
 source scripts/symlink.sh
 
 # Clone mbed-os
-if [ -d "tests/mbed-os" ]
+if [ -d "dependencies/mbed-os" ]
 then
     echo "Using existing mbed-os"
 else
     # git clone https://github.com/ARMmbed/mbed-os.git
-    # Use feature branch until merged to master
-    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature_unittest_refactor tests/mbed-os
+    # Use feature-bluetooth-unit-test branch until merged to master
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature_unittest_refactor dependencies/mbed-os
 fi
 
 # Add symlinks
-symlink tests/mbed-os tests/TESTS/LinkLoss/device/mbed-os
+symlink dependencies/mbed-os tests/mbed-os
+symlink dependencies/mbed-os tests/TESTS/LinkLoss/device/mbed-os
 symlink services/LinkLoss tests/TESTS/LinkLoss/device/LinkLoss
 
 # Create virtual environment
