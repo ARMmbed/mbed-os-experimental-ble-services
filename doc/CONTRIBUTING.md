@@ -2,7 +2,7 @@
 
 Greetings!
 Thank you for expressing an interest in Mbed OS Experimental BLE Services, an incubator for Bluetooth services.
-This is a community-led effort so we welcome all contributions with open arms 😉
+This is a community-led effort so we welcome all contributions with open arms.
 
 ## How to contribute
 We would like to make the contribution process as smooth as possible.
