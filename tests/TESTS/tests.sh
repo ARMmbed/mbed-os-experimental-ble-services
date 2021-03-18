@@ -25,7 +25,7 @@ HELP_USAGE
 }
 
 # Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/../..
 
 # Bootstrap of the environment
 ./scripts/bootstrap.sh

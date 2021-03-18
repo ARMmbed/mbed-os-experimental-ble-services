@@ -31,7 +31,7 @@ else
 fi
 
 # Add symlinks
-symlink dependencies/mbed-os tests/mbed-os
+symlink dependencies/mbed-os tests/UNITTESTS/mbed-os
 symlink dependencies/mbed-os tests/TESTS/LinkLoss/device/mbed-os
 symlink services/LinkLoss tests/TESTS/LinkLoss/device/LinkLoss
 
@@ -53,7 +53,7 @@ fi
 source scripts/activate.sh
 
 # Install mbed-os requirements
-pip install -r tests/mbed-os/requirements.txt
+pip install -r dependencies/mbed-os/requirements.txt
 
 # Install testing requirements
 pip install -r tests/TESTS/requirements.txt

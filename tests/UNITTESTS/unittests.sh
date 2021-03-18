@@ -16,7 +16,7 @@
 set -e
 
 # Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/../..
 
 # Bootstrap of the environment
 ./scripts/bootstrap.sh
@@ -24,7 +24,7 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
 # Activate virtual environment
 source scripts/activate.sh
 
-cd tests
+cd tests/UNITTESTS
 
 cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
 cmake --build cmake_build

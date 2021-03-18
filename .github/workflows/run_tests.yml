@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - restructure-repository
   pull_request:
 jobs:
   run-unit-tests:
@@ -19,7 +20,7 @@ jobs:
             pip3 install virtualenv
 
         - name: Run unit tests
-          run: ./tests/unittests.sh
+          run: ./tests/UNITTESTS/unittests.sh
 
         - name: Upload coverage result
           uses: actions/upload-artifact@v2
@@ -42,5 +43,5 @@ jobs:
 
       - name: Run integration tests
         run: |
-          ./tests/tests.sh -s LinkLoss -t GCC_ARM -m NRF52840_DK
-          ./tests/tests.sh -s LinkLoss -t GCC_ARM -m DISCO_L496AG
+          ./tests/TESTS/tests.sh -s LinkLoss -t GCC_ARM -m NRF52840_DK
+          ./tests/TESTS/tests.sh -s LinkLoss -t GCC_ARM -m DISCO_L496AG
