@@ -7,10 +7,7 @@ This is a community-led effort so we welcome all contributions with open arms.
 ## How to contribute
 We would like to make the contribution process as smooth as possible.
 Therefore, we provide an out of the box development environment that can be used with Visual Studio Code.
-Please refer to the main [development guide](./DEVELOPMENT.md) to learn how to setup and use this feature. 
-
-Of course, you are free to use your own development environment. 
-However, please ensure that all dependencies are present in the tree by running the command `bootstrap.sh` in the root repository.
+Please refer to the main [development guide](./DEVELOPMENT.md) to learn how to use this feature or setup your own development environment. 
 
 ## Types of contributions
 There are a several ways to contribute to this repository, such as
