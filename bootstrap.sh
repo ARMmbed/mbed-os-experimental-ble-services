@@ -1,60 +1,59 @@
 #!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 set -e
 
-# Test if the script is running on windows
-windows() {
-    [[ -n "$WINDIR" ]];
-}
+# Enter repository root
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Load symlink script, it sets the current directory to the root of
-# the repository and export its path in a ROOT variable
-source $(dirname $0)/symlink.sh
+# Load symlink script
+source symlink.sh
 
-cd "$ROOT"
-
-# Enter the test folder
-cd ./tests
-
-# We need stubs from mbed-os
-if [ -d "mbed-os" ]
+# Clone mbed-os
+if [ -d "tests/mbed-os" ]
 then
     echo "Using existing mbed-os"
 else
     # git clone https://github.com/ARMmbed/mbed-os.git
-    # until it's not merged we use my branch
-    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test
+    # Use feature-bluetooth-unit-test branch until merged to master
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test tests/mbed-os
 fi
 
-# Add symbolic links
-cd "$ROOT"
-symlink "tests/mbed-os" "tests/TESTS/LinkLoss/device/mbed-os"
-symlink "services/LinkLoss" "tests/TESTS/LinkLoss/device/LinkLoss"
-
-# Enter the integration testing folder
-cd ./tests/TESTS
+# Add symlinks
+symlink tests/mbed-os tests/TESTS/LinkLoss/device/mbed-os
+symlink services/LinkLoss tests/TESTS/LinkLoss/device/LinkLoss
 
 # Create virtual environment
-if [ -d "venv" ]
+if [ -d "tests/TESTS/venv" ]
 then
   echo "Using existing virtual environment"
 else
-  mkdir venv
+  mkdir tests/TESTS/venv
   # On Windows, the Python 3 executable is called 'python'
   if windows; then
-    python  -m virtualenv venv
+    python  -m virtualenv tests/TESTS/venv
   else
-    python3 -m virtualenv venv
+    python3 -m virtualenv tests/TESTS/venv
   fi
 fi
 
-# Enter the virtual environment folder
-cd venv
-
 # Activate virtual environment
-source ../../../activate.sh
+source activate.sh
 
 # Install mbed-os requirements
-pip install -r ../../mbed-os/requirements.txt
+pip install -r tests/mbed-os/requirements.txt
 
 # Install testing requirements
-pip install -r ../requirements.txt
+pip install -r tests/TESTS/requirements.txt

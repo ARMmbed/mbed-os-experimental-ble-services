@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,54 +13,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT="$(cd "$(dirname $0)" && pwd)"
 FIRST_ARG=$1
 
-# Test if the script is running on windows
+# Test if script is running on Windows
 windows() {
     [[ -n "$WINDIR" ]];
 }
 
-# link $target $linkname
+# Create symbolic link
 symlink() {
     local TARGET=$1
     local LINKNAME=$2
     local FORCE_FLAG=$3
 
-    # find depth of the target bycounting slashes in path
+    # Find depth of target by counting slashes in path
     local SLASHES="${LINKNAME//[^\/]}"
     local DEPTH=${#SLASHES}
 
-    # make relative path by prepending ../
+    # Make relative path
     local RELATIVE_TARGET="${TARGET}"
     for (( ; DEPTH>0 ; DEPTH-- ))
     do
         RELATIVE_TARGET="../${RELATIVE_TARGET}"
     done
 
-    # replace slashes for windows paths
+    # Replace slashes for Windows paths
     local WIN_LINKNAME="\"${LINKNAME//\//\\}\""
     local WIN_TARGET="${TARGET//\//\\}"
     local WIN_RELATIVE_TARGET="\"${RELATIVE_TARGET//\//\\}\""
 
     # Make parent directory
     if [[ "$FIRST_ARG" != "clean" ]]; then
-        mkdir -p $(dirname "$LINKNAME")
+        mkdir -p "$(dirname "$LINKNAME")"
     fi
 
-    # Link-creation/deletion mode.
+    # Link creation/deletion mode
     if [[ "$FIRST_ARG" == "clean" ]]; then
-        echo "rm $ROOT/$LINKNAME"
-        rm "$ROOT/$LINKNAME" 2> /dev/null || true
+        echo "rm $LINKNAME"
+        rm "$LINKNAME" 2> /dev/null || true
     else
-        # Remove the target if already exists
-        if [[ -a "$ROOT/$LINKNAME" ]]; then
-            # Allow silently forced deletion, which is slightly dangerous unless
-            # used for specific directories only.
+        # Remove target if already exists
+        if [[ -a "$LINKNAME" ]]; then
+            # Allow forced deletion
             if [[ "$FORCE_FLAG" != "force" ]]; then
-                # if $LINKNAME is a directory AND NOT a symlink, ask for confirmation.
-                while [ -d "$ROOT/$LINKNAME" ] && [ ! -h "$ROOT/$LINKNAME" ]; do
-                    read -p "You are about to delete $LINKNAME. Are you sure you want to proceed ?" yn
+                # if $LINKNAME is a directory and not a symbolic link, ask for confirmation.
+                while [ -d "$LINKNAME" ] && [ ! -h "$LINKNAME" ]; do
+                    read -rp "You are about to delete $LINKNAME. Are you sure you want to proceed ?" yn
                     case $yn in
                         [Yy]* ) break;;
                         [Nn]* ) exit;;
@@ -68,17 +66,17 @@ symlink() {
                     esac
                 done
             fi
-            rm -rf "$ROOT/$LINKNAME"
+            rm -rf "$LINKNAME"
         fi
         if windows; then
-            if [ -d "$ROOT/$WIN_TARGET" ]; then
+            if [ -d "$WIN_TARGET" ]; then
                 cmd <<< "mklink /D $WIN_LINKNAME $WIN_RELATIVE_TARGET" > /dev/null
             else
                 cmd <<< "mklink $WIN_LINKNAME $WIN_RELATIVE_TARGET" > /dev/null
             fi
         else
-            ln -s "$RELATIVE_TARGET" "$ROOT/$LINKNAME"
+            ln -s "$RELATIVE_TARGET" "$LINKNAME"
         fi
-        echo $LINKNAME >> .gitignore
+        echo "$LINKNAME" >> .gitignore
     fi
 }

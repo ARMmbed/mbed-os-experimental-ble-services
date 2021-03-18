@@ -1,6 +1,0 @@
-name: "Run integration tests"
-description: "this relies on the shell script tests.sh to run the tests"
-
-runs:
-  using: "docker"
-  image: "Dockerfile"
