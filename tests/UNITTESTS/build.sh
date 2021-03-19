@@ -13,17 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Repository root
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
+set -e
 
-# Test if script is running on windows
-windows() {
-    [[ -n "$WINDIR" ]];
-}
+# Set wd to script location
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Activate virtual environment
-if windows; then
-  source "$ROOT"/tests/TESTS/venv/Scripts/activate
-else
-  source "$ROOT"/tests/TESTS/venv/bin/activate
-fi
+source ../../scripts/activate.sh
+
+# Build unit tests
+cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
+cmake --build cmake_build
+
+# Deactivate virtual environment
+deactivate

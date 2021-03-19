@@ -15,23 +15,18 @@
 
 set -e
 
-# Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/../..
-
-# Bootstrap of the environment
-./scripts/bootstrap.sh
+# Set wd to script location
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Activate virtual environment
-source scripts/activate.sh
+source ../../scripts/activate.sh
 
-cd tests/UNITTESTS
-
-cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
-cmake --build cmake_build
-
-# Normal test
+# Run unit tests
 (cd cmake_build; ctest -V)
-# valgrind
 (cd cmake_build; ctest -D ExperimentalMemCheck)
-# gcov (only show coverage of services)
+
+# Test coverage report
 gcovr --html=coverage.html  -f ".*cmake_build/services.*"
+
+# Deactivate virtual environment
+deactivate

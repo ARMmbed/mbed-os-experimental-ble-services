@@ -24,14 +24,11 @@ usage() {
 HELP_USAGE
 }
 
-# Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/../..
-
-# Bootstrap of the environment
-./scripts/bootstrap.sh
+# Set wd to script location
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Activate virtual environment
-source scripts/activate.sh
+source ../../scripts/activate.sh
 
 # Parse options
 while getopts "s:t:m:h" opt
@@ -60,12 +57,15 @@ then
 fi
 
 # Enter device folder for specified service
-cd tests/TESTS/"$service"/device
+cd "$service"/device
 
 # Build Mbed BLE app (new tools)
 mbed-tools compile -t "$toolchain" -m "$target"
 
 # Build Mbed BLE app (old tools)
 mbed compile -t "$toolchain" -m "$target"
+
+# Deactivate virtual environment
+deactivate
 
 exit 0
