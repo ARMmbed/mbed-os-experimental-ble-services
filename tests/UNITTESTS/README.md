@@ -1,43 +1,25 @@
-# Testing experimental services
+# Unit testing
 
-The services provided are covered by unittests. We use GoogleTest as the testing framework and CTest
-as the runner.
+The services provided are covered by unit tests.
+We use the [GoogleTest](https://github.com/google/googletest) framework with the [CTest](https://cmake.org/cmake/help/latest/manual/ctest.1.html) runner.
 
-When adding a new service please include a unittest suite for your new service in your service PR.
-You are free to use any framework as long as it integrates with our CTest runner but to take advantage of
-mocks provided by mbed-os you'll have to use [GoogleTest](https://github.com/google/googletest).
+Please add a test suite to your PR when adding a new service.
+Feel free to use any framework as long as it integrates with our CTest runner, but to take advantage of mocks provided by Mbed OS you will have to use GoogleTest.
 
-# Running
-
-To run unittests simply run:
-
-```
-./unittests.sh
-```
-
-This will configure and build the tests with Cmake and run the tests.
-
-Unit tests require mbed-os to provide stubs and mocks. A copy of mbed-os will be checked out during the build into
-the tests directory unless it's already there (you may use a symlink if you already have a checkout of mbed-os):
+## Test code structure
+Each test suite should be named after the service under test (SUT) and contain two files: a C++ test file and a `CMakeLists.txt`.
+For example, the directory tree for the LinkLoss test suite is shown below.
 
 ```
-tests/
-└── UNITESTS/
-└── mbed-os/
+LinkLoss/
+├─── CMakeLists.txt
+└─── test_LinkLossService.cpp
 ```
 
-This will not be deleted after the run. If you already have a symlinked copy of mbed-os in this place it will not
-be affected and the unit tests will use it as is.
+For the `CMakeLists.txt`, you may use the following template.
+Please change the "your service" values to the actual name of your service.
 
-# Adding a new test
-
-Before or during the development of your service you should add a new unittest to cover it. This is done by
-creating a new directory inside [UNITTESTS](./UNITTESTS). CMake will automatically add any directory added there.
-
-Inside the directory you must add a `CMakeLists.txt` file. You may use this template below. Please change the
-"your service" values to your actual service name.
-
-```
+```cmake
 # Copyright (c) 2020 ARM Limited. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.0.2)
@@ -73,69 +55,95 @@ target_link_libraries(${TEST_NAME}
 add_test(NAME "${TEST_NAME}" COMMAND ${TEST_NAME})
 ```
 
-Inside CMake files for unit tests there are two special variables you can use that are set by the top level
-unit test CMakeLists.txt: `MBED_PATH`, `SERVICES_PATH`. These point to mbed-os and the services directory.
+Please add your test suite as a subdirectory in the top-level `CMakeLists.txt` by appending the following line to it:
 
-## Stubs, mocks and fakes in mbed-os
+```cmake
+add_subdirectory(YourService)
+```
 
-To make it easier to test your service mbed-os provides some ready made CMake libraries you can add in your
-`target_link_libraries` section (see template above). Libraries can be object files that contains stubs, mocks
-and fakes but also sets of include paths - this way you can gain access to normal headers from mbed-os.
+## Unit testing with GoogleTest
 
-All the libraries available are in the `CMakeLists.txt` files in `mbed-os/UNITTESTS/stubs` and
-`mbed-os/UNITTESTS/fakes`.
+### Stubs, mocks and fakes in Mbed OS
+
+To make it easier to test your service, Mbed OS provides some ready-made CMake libraries you can add in your `target_link_libraries` section (see template above). 
+Libraries can be object files that contain stubs, mocks and fakes but also sets of include paths - this way you can gain access to normal headers from Mbed OS.
+
+All the libraries available are in the `CMakeLists.txt` files in `mbed-os/UNITTESTS/stubs` and `mbed-os/UNITTESTS/fakes`.
 
 The most common ones you might need are `mbed-os-fakes-ble` and `mbed-os-fakes-event-queue`.
 
-### mbed-os-fakes-ble
+#### mbed-os-fakes-ble
 
-This library provides a fake BLE implementation that uses mocks instead of real BLE components for `Gap`,
-`GattServer`, `GattClient`, `SecurityManager`.
+This library provides a fake BLE implementation that uses mocks instead of real BLE components for `Gap`, `GattServer`, `GattClient`, `SecurityManager`.
 
 There is no need to initialise a fake BLE instance; it is ready to go and can be used just like a normal BLE instance:
 
-```
+```c++
 BLE *ble = &BLE::Instance();
 ```
 
-This call also initialises mocks. Do no cache the BLE instance pointer, or pointer to GAP, GattServer etc. between
-tests. You must get the instance fresh at the start of the test.
+This call also initialises mocks. 
+Do no cache the BLE instance pointer, or pointer to `GAP`, `GattServer` etc. between tests. 
+You must get the instance fresh at the start of the test.
 
 You can retrieve all the BLE APIs from the instance just like with a normal one:
 
-```
+```c++
 Gap &gap = ble->gap();
 GattClient &client = ble->gattClient();
 GattServer &server = ble->gattServer();
 SecurityManager &sm = ble->securityManager();
 ```
 
-Whenever an API call is made, the implementation will be called. These are replaced in the fake BLE with google mocks.
+Whenever an API call is made, the implementation will be called. 
+These are replaced in the fake BLE with google mocks.
 This means you can set expectations on them. 
 
-```
+```c++
 EXPECT_CALL(ble::gap_mock(), reset());
 ```
 
-This will set up an expectations that at some point during the test the Gap::reset method will be called.
+This will set up an expectation that at some point during the test the `Gap::reset` method will be called.
 
-The way google test works means that if you set any expectations on your mocks they must be destroyed at
-the end of each test. This is done through the fake BLE instance special method:
+The way GoogleTest works means that if you set expectations on your mocks they must be destroyed at the end of each test. 
+This is done through the fake BLE instance special method:
 
-```
+```c++
 ble::delete_mocks();
 ```
 
-### mbed-os-fakes-event-queue
+#### mbed-os-fakes-event-queue
 
-This is a fake event queue that doesn't bring in any dependencies from mbed-os. Its API is simplified
-and it only offers limited functionality.
+This is a fake event queue that doesn't bring in any dependencies from mbed-os. 
+Its API is simplified and it only offers limited functionality.
 
-If you choose to use it you must not also include a library that brings in real headers for the event
-queue as they would conflict.
+If you choose to use it you must not also include a library that brings in real headers for the event queue as they would conflict.
 
 The API calls supported are for simple calls `call`, `call_in` and the `cancel` method.
 
-The event queue is not run in real time and must be progressed manually. You may use
-`dispatch(int milliseconds)` and `dispatch_forever()` to process events in the queue. This way you can
-simulate the passage of time in your test. 
+The event queue is not run in real time and must be progressed manually. 
+You may use `dispatch(int milliseconds)` and `dispatch_forever()` to process events in the queue. 
+This way you can simulate the passage of time in your test.
+
+## Building and running unit tests
+
+1. Run the bootstrap process:
+
+    ```shell
+    ../../scripts/bootstrap.sh
+    ```
+
+   Unit tests depend on Mbed OS to provide stubs and mocks.
+   As such, it is cloned into the dependencies folder during the bootstrap process and symlinked here.
+   
+1. Build unit tests with CMake:
+
+    ```shell
+    ./build.sh
+    ```
+
+1. Run unit tests:
+
+    ```shell
+    ./run.sh
+    ```
