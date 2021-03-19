@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - restructure-repository
   pull_request:
 jobs:
   unit-tests:
