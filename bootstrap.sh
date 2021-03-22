@@ -27,8 +27,8 @@ then
     echo "Using existing mbed-os"
 else
     # git clone https://github.com/ARMmbed/mbed-os.git
-    # Use feature-bluetooth-unit-test branch until merged to master
-    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature-bluetooth-unit-test tests/mbed-os
+    # Use feature branch until merged to master
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature_unittest_refactor tests/mbed-os
 fi
 
 # Add symlinks

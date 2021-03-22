@@ -21,10 +21,11 @@ target_sources(${TEST_NAME}
 
 target_link_libraries(${TEST_NAME}
     PRIVATE
-        mbed-os-fakes-ble
-        mbed-os-fakes-event-queue
-        mbed-os-headers-base
-        mbed-os-headers-platform
+        mbed-fakes-ble
+        mbed-fakes-event-queue
+        mbed-headers-base
+        mbed-headers-platform
+        mbed-headers-connectivity
         gmock_main
 )
 
