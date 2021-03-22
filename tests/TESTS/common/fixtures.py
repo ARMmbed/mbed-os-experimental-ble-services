@@ -14,17 +14,16 @@
 # limitations under the License.
 
 import mbed_lstools
-import platform
 import logging
 import pytest
 
-from typing import List, Optional, Any, Mapping
-from bleak import BleakClient, BleakScanner, BleakError
+from typing             import List, Optional, Any, Mapping
+from bleak              import BleakClient, BleakScanner, BleakError
 from mbed_flasher.flash import Flash
 from .serial_connection import SerialConnection
-from .serial_device import SerialDevice
+from .serial_device     import SerialDevice
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -93,7 +92,7 @@ class BoardAllocator:
         for desc in boards:
             self.allocation.append(BoardAllocation(desc))
 
-    def allocate(self, name: str = None) -> Optional[SerialDevice]:
+    async def allocate(self, name: str = None) -> Optional[SerialDevice]:
         for alloc in self.allocation:
             if alloc.ble_device is None:
                 # Flash if a binary is provided and the board hasn't been flashed yet
@@ -116,7 +115,7 @@ class BoardAllocator:
                 # Create the serial device
                 serial_device = SerialDevice(connection, name)
                 serial_device.reset(duration=1)
-                serial_device.flush(1)
+                await serial_device.flush(1)
 
                 # Create the SerialDevice
                 alloc.ble_device = serial_device
@@ -166,7 +165,8 @@ class ClientAllocator:
                         except BleakError:
                             pass
                         attempts -= 1
-        return None
+                    self.client = None
+        return self.client
 
     async def release(self, client: BleakClient) -> None:
         if self.client == client and self.client is not None:

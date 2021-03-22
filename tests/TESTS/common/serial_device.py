@@ -13,14 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
 import re
 import threading
 
-from queue import Empty
+from queue   import Empty
 from .device import Device
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def strip_escape(string_to_escape) -> str:
@@ -54,12 +55,12 @@ class SerialDevice(Device):
         self.serial = serial_connection
         self.run = True
         super(SerialDevice, self).__init__(name)
-        input_thread_name = '<-- {}'.format(self.name)
-        output_thread_name = '--> {}'.format(self.name)
+        ip_thread_name = '<-- {}'.format(self.name)
+        op_thread_name = '--> {}'.format(self.name)
 
-        self.it = threading.Thread(target=self._input_thread, name=input_thread_name)
-        self.ot = threading.Thread(target=self._output_thread, name=output_thread_name)
-        log.info('Starting runner threads for "{}"'.format(self.name))
+        self.it = threading.Thread(target=self._ip_thread, name=ip_thread_name)
+        self.ot = threading.Thread(target=self._op_thread, name=op_thread_name)
+        logger.info('Starting runner threads for "{}"'.format(self.name))
         self.it.start()
         self.ot.start()
 
@@ -74,14 +75,16 @@ class SerialDevice(Device):
         """
         Stop the processing of the serial
         """
-        log.info('Stopping "{}" runner...'.format(self.name))
+        logger.info('Stopping "{}" runner...'.format(self.name))
         self.run = False
         self.it.join()
         self.ot.join()
 
-    def _input_thread(self):
+    def _ip_thread(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         while self.run:
-            line = self.serial.readline()
+            line = loop.run_until_complete(self.serial.readline_async())
             if line:
                 plain_line = strip_escape(line)
                 # Testapp uses \r to print characters to the same line, strip those and return only the last part
@@ -93,23 +96,25 @@ class SerialDevice(Device):
                 try:
                     plain_line = plain_line.decode()
                 except UnicodeDecodeError:
-                    log.warning('{}: Invalid bytes read: {}'.format(self.name, line))
+                    logger.warning('{}: Invalid bytes read: {}'.format(self.name, line))
                     continue
                 plain_line.rstrip()
-                log.info('<--|{}| {}'.format(self.name, plain_line.strip()))
+                logger.info('<--|{}| {}'.format(self.name, plain_line.strip()))
                 self.iq.put(plain_line)
             else:
                 pass
 
-    def _output_thread(self):
+    def _op_thread(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         while self.run:
             try:
                 line = self.oq.get(timeout=1)
                 if line:
-                    log.info('-->|{}| {}'.format(self.name, line.strip()))
+                    logger.info('-->|{}| {}'.format(self.name, line.strip()))
                     data = line + '\n'
-                    self.serial.write(data.encode('utf8'))
+                    loop.run_until_complete(self.serial.write_async(data.encode('utf8')))
                 else:
-                    log.debug('Nothing sent')
+                    logger.debug('Nothing sent')
             except Empty:
                 pass

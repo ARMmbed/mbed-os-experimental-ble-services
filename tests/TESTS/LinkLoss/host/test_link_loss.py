@@ -14,10 +14,9 @@
 # limitations under the License
 
 import pytest
-import platform
 
 from common.fixtures import BoardAllocator, ClientAllocator
-from bleak.uuids import uuid16_dict
+from bleak.uuids     import uuid16_dict
 
 uuid16_dict = {v: k for k, v in uuid16_dict.items()}
 
@@ -37,8 +36,8 @@ alert_timeout = 5
 
 
 @pytest.fixture(scope="function")
-def board(board_allocator: BoardAllocator):
-    board = board_allocator.allocate('LinkLoss')
+async def board(board_allocator: BoardAllocator):
+    board = await board_allocator.allocate('LinkLoss')
     yield board
     board_allocator.release(board)
 
@@ -69,12 +68,8 @@ async def test_alert_level_write(board, client, alert_level):
 async def test_alert_mechanism(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
-    # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
-    # This does not affect the application running on the device since we are already disconnected
-    if platform.system() == "Windows":
-        await client.disconnect()
-    board.wait_for_output(alert_message, timeout=10)
-    board.wait_for_output("Alert ended", timeout=alert_timeout)
+    await board.wait_for_output(alert_message, timeout=10)
+    await board.wait_for_output("Alert ended", timeout=alert_timeout)
 
 
 @pytest.mark.asyncio
@@ -83,10 +78,6 @@ async def test_alert_mechanism(board, client, alert_level, alert_message):
 async def test_disconnection_reconnection(board, client, alert_level, alert_message):
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
-    # On Windows, we need to trigger a normal disconnection to prevent Bleak from trying to automatically reconnect
-    # This does not affect the application running on the device since we are already disconnected
-    if platform.system() == "Windows":
-        await client.disconnect()
-    board.wait_for_output(alert_message, timeout=10)
+    await board.wait_for_output(alert_message, timeout=10)
     await client.connect()
-    board.wait_for_output("Alert ended", timeout=10)
+    await board.wait_for_output("Alert ended", timeout=10)
