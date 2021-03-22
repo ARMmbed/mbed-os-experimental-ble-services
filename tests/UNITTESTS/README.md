@@ -132,9 +132,6 @@ This way you can simulate the passage of time in your test.
     ```shell
     ../../scripts/bootstrap.sh
     ```
-
-   Unit tests depend on Mbed OS to provide stubs and mocks.
-   As such, it is cloned into the dependencies folder during the bootstrap process and symlinked here.
    
 1. Build unit tests with CMake:
 
@@ -147,3 +144,6 @@ This way you can simulate the passage of time in your test.
     ```shell
     ./run.sh
     ```
+
+   Unit tests depend on Mbed OS to provide stubs and mocks.
+   As such, it is cloned into the dependencies folder during the bootstrap process and symlinked here.

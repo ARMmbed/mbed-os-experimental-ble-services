@@ -28,7 +28,7 @@ LinkLoss/
      └─── test_link_loss.py
 ```
 
-The ~mbed-os and ~LinkLoss files are symbolic links for the Mbed OS clone in the parent tests directory, and the Link Loss Service (LLS) files in the services subdirectory of the root Experimental BLE Services repository, respectively.
+The ~mbed-os and ~LinkLoss files are symbolic links to the Mbed OS clone in the dependencies folder and the Link Loss Service (LLS) files, respectively.
 These are added during the bootstrap process using the `symlink` command, a platform agnostic method to create symbolic links.
 The general syntax is:
 
