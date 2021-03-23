@@ -1,13 +1,13 @@
 {
-    "name": "ble-fota-service",
+    "name": "ble-service-fota",
     "config": {
-        "rx-buffer-size": {
-            "help": "Size of binary data stream receive buffer in bytes",
-            "value": 256
+        "control-buffer-size": {
+            "help": "Maximum length of control characteristic in bytes",
+            "value": 8
         },
-        "max-slots": {
-            "help": "Maximum number of update slots that can be assigned corresponding BlockDevices",
-            "value": 3
+        "status-buffer-size": {
+            "help": "Maximum length of status characteristic in bytes",
+            "value": 8
         }
     }
 }

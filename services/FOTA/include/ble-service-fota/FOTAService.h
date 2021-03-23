@@ -28,6 +28,9 @@
 #include "ble/GattServer.h"
 #include "ble/Gap.h"
 
+#include "ChainableGapEventHandler.h"
+#include "ChainableGattServerEventHandler.h"
+
 #include "platform/Callback.h"
 #include "platform/Span.h"
 #include "platform/PlatformMutex.h"
@@ -49,49 +52,6 @@
 #endif
 
 /**
- * RX Buffer Size
- * This should be at least 1.5X the maximum MTU you expect to accept
- * Defaults to 2.5X maximum MTU
- */
-#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE
-#define MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE ((BLE_FOTA_SERVICE_MAX_DATA_LEN << 1) +\
-                                                  (BLE_FOTA_SERVICE_MAX_DATA_LEN >> 1))
-#endif
-
-/**
- * RX Buffer Flow Control Pause Threshold
- * This is the maximum number of bytes that can be placed into the RX buffer
- * before the server automatically sets the flow control pause bit.
- *
- * By default this is 2X the maximum MTU
- */
-#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_FC_PAUSE_THRESHOLD
-#define MBED_CONF_BLE_FOTA_SERVICE_RX_FC_PAUSE_THRESHOLD (BLE_FOTA_SERVICE_MAX_DATA_LEN << 1)
-#endif
-
-/**
- * RX Buffer Flow Control Unpause Threshold
- * This is the maximum number of bytes that can be in the RX buffer
- * before the server automatically clears the flow control pause bit.
- *
- * By default this is 1X the maximum MTU
- */
-#ifndef MBED_CONF_BLE_FOTA_SERVICE_RX_FC_UNPAUSE_THRESHOLD
-#define MBED_CONF_BLE_FOTA_SERVICE_RX_FC_UNPAUSE_THRESHOLD BLE_FOTA_SERVICE_MAX_DATA_LEN
-#endif
-
-/**
- * Bit flags
- */
-#define FOTA_CTRL_ENABLE_BIT         (1 << 0)
-#define FOTA_CTRL_COMMIT_BIT         (1 << 1)
-/* Bits 2-6 are reserved */
-#define FOTA_CTRL_FC_PAUSE_BIT       (1 << 7)
-
-/* Bitmask of read-only bits in the FOTA Ctrl bit set */
-#define FOTA_CTRL_READONLY_BITS      (FOTA_CTRL_FC_PAUSE_BIT)
-
-/**
  * UUIDs
  */
 namespace uuids {
@@ -102,56 +62,12 @@ namespace FOTAService {
     extern const char BinaryStreamUUID[];
     extern const char ControlUUID[];
     extern const char StatusUUID[];
+    extern const char VersionUUID[];
 
 }}
 
-
-/**
- * API Brainstorm:
- * FOTA service will have several characteristics:
- * - Current Offset (Read/Write), gives the offset address, in bytes, of the write pointer
- *      --- Writes to this characteristic while there is data in binary data stream buffer will be rejected.
- *      A rejected write will initiate flushing the buffer to the selected slot block device.
- *      Subsequent writes will be rejected until flushing is complete.
- *      Note: any writes to the binary data stream characteristic while the buffer is being flushed will be ignored
- *      --- If the delta bit is enabled, any memory sections skipped will be written with bytes copied from the primary application
- * - Binary Data stream, variable-length array characteristic for streaming the update in binary.
- *      The underlying block device will be written at the offset given by current offset for each byte written to this characteristic.
- *      The offset is incremented for each byte written
- * - FOTA Control Characteristic
- *      - Notify/Indicate/Read (for flow control bit mainly)
- *      - Write (w/ response), ability to add security requirements
- *      - Bit flags:
- *      --- FOTA Enable, FOTA abort = write 0 during update
- *      --- FOTA Commit
- *      --- Delta mode (any skipped sections will be written with existing app data)
- *      --- Flow Control Bit (if set, peer should pause writing to binary stream characteristic)
- *      - Write is only allowed if FOTA is currently allowed
- *      - Allows application/device to prepare for an update (cache/save data, shutdown certain things, erase/prepare flash area)
- * - Status characteristic
- *      - Notify/Indicate/Read
- *      - Error code (eg: update too large, invalid update (after reboot), etc)
- *      - If highest bit is set it indicates a sync lost notification
- *      ---> The 7LSB will then indicate the expected sequence ID that did not match. The client should restart transmission from this sequence ID.
- * - Selected Slot
- *      - Write (w/ response)
- *      - Write is only allowed if slot has valid block device
- *      - Deselected slot BD is deinited, selected slot is inited
- *      - Similar to offset, writes to this characteristic while there is data in the binary data stream buffer
- *      will flush the buffer to the selected block device before the selected slot change is applied.
- *      Note: In delta mode, selecting a new slot WILL NOT result in the remaining data in the slot being written with copied application data
- *      To accomplish this, the peer should write the offset characteristic to the point where data should be copied before changing slots.
- *
- * Notes:
- * - Valid slots are intended to be empirically determined by the peer (as necessary)
- * by attempting to set the
- *
- * - Should writes to the binary data stream be synchronized with flash write waits? Potentially much slower
- * - Control bitflags class? Use std::bitset?
- *
- */
-class FOTAService : public ble::GattServer::EventHandler,
-                    public ble::Gap::EventHandler,
+class FOTAService : private ble::GattServer::EventHandler,
+                    private ble::Gap::EventHandler,
                     private mbed::NonCopyable<FOTAService> {
 
 public:
@@ -165,64 +81,90 @@ public:
      * defined in the GattAuthCallbackReply_t enum.
      */
     enum ApplicationError_t {
-        AUTH_CALLBACK_REPLY_ATTERR_APP_NOT_ALLOWED      = 0x019C, /** Response when client attempts to enable FOTA when disallowed */
-        AUTH_CALLBACK_REPLY_ATTERR_APP_READONLY         = 0x019D, /** A write request was made that modifies data that is read-only */
-        AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY             = 0x019E, /** FOTAService is busy (eg: flush in progress) */
-        AUTH_CALLBACK_REPLY_ATTERR_APP_INVALID_SLOT_NUM = 0x019F, /** Client requested invalid slot index */
+        AUTH_CALLBACK_REPLY_ATTERR_APP_BUSY             = 0x0190, /** Application is busy */
+        AUTH_CALLBACK_REPLY_ATTERR_UNSUPPORTED_OPCODE   = 0x0191, /** Received unsupported control op code*/
+        AUTH_CALLBACK_REPLY_ATTERR_HW_INHIBIT           = 0x0192, /** Hardware inhibited processing the op code */
+        AUTH_CALLBACK_REPLY_ATTERR_LOW_BATTERY          = 0x0193, /** Low battery inhibited processing the op code */
+        AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC          = 0x0194, /** Transfer is out of sync, cannot process op code in this state */
+        /* 0x0195 through 0x019F are reserved for future use by base FOTA service */
+    };
+
+    /**
+     * FOTA standard op codes
+     */
+    enum OpCode_t {
+        FOTA_NO_OP      = 0x00, /** No operation */
+        FOTA_START      = 0x01, /** Initiate a FOTA update session */
+        FOTA_STOP       = 0x02, /** Abort a FOTA update session */
+        FOTA_COMMIT     = 0x03, /** End a FOTA update session and commit the update */
+        /* Op Codes 0x04 through 0x40 are reserved for future use by the base FOTA service */
     };
 
     /**
      * FOTA-specific status codes
      */
     enum StatusCode_t{
-        FOTA_STATE_IDLE                      = 0x00, /** Neutral state */
-        FOTA_STATE_UPDATE_SUCCESSFUL         = 0x01,
-        FOTA_STATE_UNKNOWN_FAILURE           = 0x02,
-        FOTA_STATE_VALIDATION_FAILURE        = 0x03, /** Validation/Authentication of update candidate failed */
-        FOTA_STATE_INSTALLATION_FAILURE      = 0x04, /** Installation of update candidate failed */
-        FOTA_STATE_APPLICATION_OVERSIZE      = 0x05, /** Update candidate exceeded memory bounds */
-        FOTA_STATE_FLASH_ERROR               = 0x06, /** Flash error */
-        FOTA_STATE_HARDWARE_ERROR            = 0x07, /** Hardware failure */
-
-        FOTA_STATE_SYNC_LOSS_BIT             = 0x80, /** If the MSbit is set in the status, the 7LSB indicate the sequence ID at which sync was lost */
-
+        FOTA_STATUS_OK                      = 0x00, /** Neutral state */
+        FOTA_STATUS_UPDATE_SUCCESSFUL       = 0x01, /** Used to communicate successful update */
+        FOTA_STATUS_XOFF                    = 0x02, /** Flow control - pause flow */
+        FOTA_STATUS_XON                     = 0x03, /** Flow control - resume flow */
+        FOTA_STATUS_SYNC_LOST               = 0x04, /** Unexpected fragment ID received */
+        FOTA_STATUS_UNSPECIFIED_ERROR       = 0x05, /** Unspecified error occurred */
+        FOTA_STATUS_VALIDATION_FAILURE      = 0x06, /** Validation/verification of the update candidate failed */
+        FOTA_STATUS_INSTALLATION_FAILURE    = 0x07, /** Failed to install firmware update candidate */
+        FOTA_STATUS_OUT_OF_MEMORY           = 0x08, /** Underlying update candidate memory is full */
+        FOTA_STATUS_MEMORY_ERROR            = 0x09, /** Error occurred in underlying memory device */
+        FOTA_STATUS_HARDWARE_ERROR          = 0x0A, /** Hardware failure */
+        FOTA_STATUS_NO_FOTA_SESSION         = 0x0B, /** No FOTA session started */
+        /* Status codes 0x0B through 0x40 are reserved for future use by the base FOTA service */
     };
 
-    /**
-     * Class encapsulating a change to the FOTA control characteristic
-     */
-    class ControlChange {
+    /** Standard packet types */
 
-        /* Allow FOTAService to instantiate ControlChange instances */
-        friend FOTAService;
+    /**
+     * Binary Stream Packet
+     */
+    class BinaryStreamPacket {
 
     public:
 
-        const FOTAService& service() const {
-            return _dfu_svc;
+        /**
+         * Construct a binary stream packet from a given buffer
+         * @param[in] buffer Span of bytes to construct packet from
+         */
+        BinaryStreamPacket(mbed::Span<uint8_t> buffer) : _buffer(buffer) {
         }
 
-        uint8_t value() const {
-            return _new_value;
+        /**
+         * Get the fragment ID of this packet
+         */
+        uint8_t get_fragment_id() {
+            return _buffer[0];
         }
 
-        uint8_t get_changed_bits() const {
-            return (_old_value ^ _new_value);
+        /**
+         * Get a Span to the firmware binary data
+         */
+        mbed::Span<uint8_t> get_data() {
+            return _buffer.subspan(1);
         }
 
-    protected:
+    private:
+        /* Buffer */
+        mbed::Span<uint8_t> _buffer;
+    };
 
-        ControlChange(FOTAService& service, uint8_t value) :
-            _dfu_svc(service), _old_value(service.get_dfu_control_bits()),
-            _new_value(value) {
+    struct EventHandler {
+
+        virtual ~EventHandler() { }
+
+        virtual StatusCode_t on_binary_stream_written(FOTAService &svc, mbed::Span<const uint8_t> buffer) {
+            return FOTA_STATUS_OK;
         }
 
-    protected:
-
-        FOTAService& _dfu_svc;
-
-        uint8_t _old_value;
-        uint8_t _new_value;
+        virtual GattAuthCallbackReply_t on_control_written(FOTAService &svc, mbed::Span<const uint8_t> buffer) {
+            return AUTH_CALLBACK_REPLY_SUCCESS;
+        }
 
     };
 
@@ -230,8 +172,11 @@ public:
 
     /**
      * Instantiate a FOTAService instance
-     * @param[in] bd BlockDevice to use for storing update candidates in slot 0
-     * @param[in] queue EventQueue to process memory writes on
+     * @param[in] ble BLE instance to host the FOTA service
+     * @param[in] queue EventQueue to process events on
+     * @param[in] chainable_gap_event_handler ChainableGapEventHandler object to register multiple Gap events
+     * @param[in] chainable_gatt_server_event_handler ChainableGattServerEventHandler object to register multiple GattServer events
+     * @param[in] protocol_version String describing FOTA protocol version
      * @param[in] fw_rev Optional, Current firmware revision string
      * @param[in] dev_desc Optional, Description of the device that this firmware is executed on
      *
@@ -241,167 +186,106 @@ public:
      * associated characteristic user description descriptor that uniquely identifies
      * the device that executes the firmware targeted by the FOTAService.
      */
-    FOTAService(mbed::BlockDevice *bd, events::EventQueue &queue,
-            const char *fw_rev = nullptr, const char *dev_desc = nullptr);
+    FOTAService(BLE &ble, events::EventQueue &event_queue,
+            ChainableGapEventHandler &chainable_gap_eh,
+            ChainableGattServerEventHandler &chainable_gatt_server_eh,
+            const char *protocol_version, const char *fw_rev = nullptr,
+            const char *dev_desc = nullptr);
 
     virtual ~FOTAService();
 
-    uint8_t get_dfu_control_bits() const {
-        return _dfu_control;
-    }
-
-    bool is_dfu_enabled() const {
-        return (_dfu_control & FOTA_CTRL_ENABLE_BIT);
-    }
-
-    void start(BLE &ble_interface);
-
-    void assign_slot_block_device(uint8_t slot, mbed::BlockDevice *bd);
+    /**
+     * Initializer
+     *
+     * Register event handlers and add service to given BLE instance.
+     *
+     * @return BLE_ERROR_NONE if initialization was successful
+     */
+    ble_error_t init();
 
     /**
-     * Register a callback to be executed when a write request occurs for the
-     * FOTA Control characteristic. The application may then accept or reject the
-     * requested changes as appropriate.
+     * Set event handler
      *
-     * @param[in] cb Application callback or nullptr to deregister
-     *
-     * @note If the application does not explicitly reject the control request,
-     * the request will be accepted by default.
+     * @param handler EventHandler object to handle events raised by the FOTA service
      */
-    void on_dfu_control_request(mbed::Callback<GattAuthCallbackReply_t(ControlChange&)> cb) {
-        _ctrl_req_cb = cb;
+    void set_event_handler(EventHandler* handler);
+
+    /**
+     * Get the service's event queue
+     * @note this may be used by the FOTAService::EventHandler to queue events for
+     * deferred processing.
+     */
+    const events::EventQueue&& get_event_queue() const {
+        return _event_queue;
     }
 
     /**
-     * Register a callback to be executed when a write is committed to the
-     * FOTA Control characteristic
-     *
-     * @param[in] cb Application callback or nullptr to deregister
-     *
+     * Pause flow control
+     * @param[in] fragment_id
      */
-    void on_dfu_control_change(mbed::Callback<void(ControlChange&)> cb) {
-        _ctrl_update_cb = cb;
-    }
+    void set_xoff();
+
+    /**
+     * Resume flow control
+     */
+    void set_xon();
+
+    /**
+     * Notify sync lost
+     */
+    void notify_sync_lost();
+
+    /**
+     * Notify status
+     * @param[in] buf Span to status buffer to notify the FOTA client with
+     */
+    void notify_status(mbed::Span<const uint8_t> buf);
+
+    /**
+     * Start/enter a FOTA session
+     */
+    void start_fota_session(void);
+
+    /**
+     * Stop/exit a FOTA session
+     */
+    void stop_fota_session(void);
 
 protected:
 
-    /**
-     * Initialize and erase the selected flash slot
-     *
-     * @note This function may run for several seconds while erasing the currently
-     * selected slot, depending on the size of the slot and flash speed.
-     */
-    void init_selected_slot(void);
+    void reset(void);
+
+    void on_control_write_request(GattWriteAuthCallbackParams *write_request);
 
     /**
-     * Internal function to process buffered binary serial data
+     * Internal handler for BSC writes
      */
-    void process_buffer(void);
+    void on_bsc_written(mbed::Span<const uint8_t> data);
 
-    /**
-     * Schedule a serialized call to process_buffer on the event queue.
-     *
-     * @note this function has no effect if a write has already been scheduled
-     */
-    void schedule_write(void) {
-        if(!_scheduled_write) {
-            _scheduled_write = _queue.call(
-                    mbed::callback(this, &FOTAService::process_buffer));
-        }
-    }
-
-    /**
-     * Set the status of the FOTAService and notify any subscribed peers
-     */
-    void set_status(uint8_t status);
-
-    /**
-     * Set the FOTA control characteristic and notify any subscribedd peers
-     */
-    void set_dfu_ctrl(uint8_t ctrl);
-
-    /**
-     * Sets the flow control pause bit and notifies any subscribed peers
-     *
-     * @note This will not have any effect if the bit is already set
-     */
-    inline void set_fc_bit(void) {
-        mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        if(!(_dfu_control & FOTA_CTRL_FC_PAUSE_BIT)) {
-            set_dfu_ctrl(_dfu_control | FOTA_CTRL_FC_PAUSE_BIT);
-        }
-    }
-
-    /**
-     * Clears the flow control pause bit and notifies any subscribed peers
-     *
-     * @note This will not have any effect if the bit is already cleared
-     */
-    inline void clear_fc_bit(void) {
-        mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        if(_dfu_control & FOTA_CTRL_FC_PAUSE_BIT) {
-            set_dfu_ctrl(_dfu_control & ~(FOTA_CTRL_FC_PAUSE_BIT));
-        }
-    }
-
-    /**
-     * Initiates a binary data stream buffer flush and sets the flow control bit
-     */
-    inline void initiate_flush(void) {
-        mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        /* Initiate a flush and set the FC pause bit */
-        _flush_bin_buf = true;
-        set_fc_bit();
-        schedule_write();
-    }
-
-    /**
-     * Completes a binary data stream buffer flush and clears the flow control bit
-     */
-    void flush_complete(void) {
-        mbed::ScopedLock<PlatformMutex> lock(_mutex);
-        _flush_bin_buf = false;
-        clear_fc_bit();
-    }
-
-    /** GattServer::EventHandler overrides */
-    void onDataWritten(const GattWriteCallbackParams &params) override;
-
-    void onUpdatesEnabled(const GattUpdatesEnabledCallbackParams &params) override;
-
-    void onUpdatesDisabled(const GattUpdatesDisabledCallbackParams &params) override;
-
-    /** Gap::EventHandler overrides */
+    /** GAP EventHandler overrides */
     void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override;
 
-    /** Internal handlers */
-    void on_slot_write_request(GattWriteAuthCallbackParams *params);
-    void on_slot_written(uint8_t new_slot);
-
-    void on_offset_write_request(GattWriteAuthCallbackParams *params);
-    void on_offset_written(uint32_t new_offset);
-
-    void on_bds_written(mbed::Span<const uint8_t> data);
-
-    void on_dfu_ctrl_write_request(GattWriteAuthCallbackParams *params);
-    void on_dfu_ctrl_written(uint8_t new_ctrl);
+    /** Gatt Server EventHandler overrides */
+    void onDataWritten(const GattWriteCallbackParams &params) override;
 
 protected:
 
-    /** Selected slot */
-    uint8_t _selected_slot = 0;
-
-    /** Current offset address */
-    uint32_t _current_offset = 0;
+    BLE &_ble;
+    events::EventQueue &_event_queue;
+    ChainableGapEventHandler &_chainable_gap_eh;
+    ChainableGattServerEventHandler &_chainable_gatt_server_eh;
 
     /** RX Buffer for binary serial */
     uint8_t _rxbuf[BLE_FOTA_SERVICE_MAX_DATA_LEN] = { 0 };
 
     /** FOTA control */
-    uint8_t _dfu_control = 0;
+    uint8_t _control[MBED_CONF_BLE_SERVICE_FOTA_CONTROL_BUFFER_SIZE] = { 0 };
 
     /** Update status */
-    uint8_t _status = 0;
+    uint8_t _status[MBED_CONF_BLE_SERVICE_FOTA_STATUS_BUFFER_SIZE] = { 0 };
+
+    /** FOTA protocol version string */
+    const char *_protocol_version_str;
 
     /** Optional firmware revision and description strings */
     const char *_fw_rev_str;
@@ -413,43 +297,18 @@ protected:
     GattAttribute *_fw_descs[1] = { (GattAttribute *) &_fw_cudd };
 
     /** Gatt Characteristics */
-    GattCharacteristic _slot_char;
-    GattCharacteristic _offset_char;
-    GattCharacteristic _rx_char;
-    GattCharacteristic _dfu_ctrl_char;
+    GattCharacteristic _binary_stream_char;
+    GattCharacteristic _ctrl_char;
     GattCharacteristic _status_char;
+    GattCharacteristic _protocol_version_char;
     GattCharacteristic _firmware_rev_char;
 
-    GattCharacteristic *_characteristics[6];
+    EventHandler *_eh = nullptr;
 
-    GattService _dfu_service;
-
-    GattServer *_server;
-
-    /** Slot BlockDevices */
-    mbed::BlockDevice *_slot_bds[MBED_CONF_BLE_FOTA_SERVICE_MAX_SLOTS];
-
-    /** Application callbacks */
-    mbed::Callback<GattAuthCallbackReply_t(ControlChange&)> _ctrl_req_cb = nullptr;
-    mbed::Callback<void(ControlChange&)> _ctrl_update_cb = nullptr;
-
-    /** Internal circular buffer */
-    mbed::CircularBuffer<uint8_t, MBED_CONF_BLE_FOTA_SERVICE_RX_BUFFER_SIZE> _bin_stream_buf;
-
-    /** Flush binary stream buffer flag */
-    bool _flush_bin_buf = false;
-
-    /** Mutex */
-    PlatformMutex _mutex;
-
-    events::EventQueue &_queue;
-
-    /** Queued event ID for scheduling flash writes */
-    uint32_t _scheduled_write = 0;
-
-    /** Sequence ID for synchronization with client */
-    uint8_t _seq_id = 0;
-
+    bool _fota_in_session = false;
+    uint8_t _fragment_id = 0;
+    bool _flow_paused = false;
+    bool _sync_lost = false;
 };
 
 #endif /* BLE_FEATURE_GATT_SERVER */
