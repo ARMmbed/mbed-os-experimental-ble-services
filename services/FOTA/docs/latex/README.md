@@ -8,3 +8,9 @@ You can install this package by first downloading the .zip file from the package
 
 
 [Click here](https://en.wikibooks.org/wiki/LaTeX/Installing_Extra_Packages) to learn more about installing LaTeX packages.
+
+To build the .tex files, use the following command:
+
+`latex <file>.tex`
+
+Then open the `.dvi` file in the appropriate document viewer.

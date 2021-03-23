@@ -107,6 +107,11 @@ If the FOTA target is unable to accept any more binary data during the FOTA sess
 
 When the FOTA target is again able to accept new binary data, the FOTA target will write the `XON` status code to the FOTA Status Characteristic. 
 
+Each of the `XOFF` and `XON` status codes will be followed by a parameter byte that indicates the 8-bit fragment ID of the last received packet before the flow control state was asserted. The FOTA client should use this information to continue the transmission at the appropriate offset when flow control is deasserted.
+
+![fota-fc-packet.png](img/fota-fc-packet.png)
+
+
 ### Resynchronization
 
 Each write to the BSC must begin with the sequential 8-bit fragment ID of the transfer. Since write-without-response is used, it is possible for a BSC packet to be dropped. To detect this, the FOTA target caches the last fragment ID it received successfully. If the next fragment ID received is not this cached value + 1 (or 0 in the case of a fragment ID rollover from 255), the FOTA target will write the `SYNC_LOST` status code to the FOTA Status Characteristic. The FOTA target will also write the expected fragment ID as the second byte in the FOTA Status Characteristic.
