@@ -31,7 +31,7 @@ package "FOTAService" {
    package "FOTAVersionStringCharacteristic" {
       component FOTAVSC_PROPS [
          UUID: 53880004-65fd-4651-ba8e-91527f06c887
-         Properties: //Read, Notify//
+         Properties: //Read//
          Length: variable (depends on length of version string)
          **Mandatory**
       ]
