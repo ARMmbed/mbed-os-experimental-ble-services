@@ -130,6 +130,12 @@ The FOTA service does not place any requirements on the FOTA target application 
 
 See the "Ending a FOTA session" section below for more information on communicating update success.
 
+## FOTA Version String Characteristic
+
+This characteristic is mandatory and must contain a version string that will uniquely identify the version of the FOTA service available on the FOTA target. The FOTA client can use this information to choose the appropriate FOTA session flow in the event of future updates.
+
+The standard FOTA implementations will have a version format as follows: "A.B.C" where A is the major revision, B is the minor revision, and C is a patch revision. A custom FOTA service implementation may choose to use its own format keeping in mind it may cause incompatibility with standard update clients.
+
 ## Firmware Revision String Characteristic
 
 The FOTA service specification includes an optional* Firmware Revision String Characteristic. This characteristic is a standard, BTSIG-specified BLE GATT Characteristic with a 16-bit UUID of `0x2A26`. This characteristic is **only optional** if:

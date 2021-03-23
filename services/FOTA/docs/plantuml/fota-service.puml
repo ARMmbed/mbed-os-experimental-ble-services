@@ -28,6 +28,14 @@ package "FOTAService" {
          **Mandatory**
       ]
    }
+   package "FOTAVersionStringCharacteristic" {
+      component FOTAVSC_PROPS [
+         UUID: 53880004-65fd-4651-ba8e-91527f06c887
+         Properties: //Read, Notify//
+         Length: variable (depends on length of version string)
+         **Mandatory**
+      ]
+   }
    package "FirmwareRevisionStringCharacteristic" {
       component FRSC_PROPS [
          UUID: 0x2A26 (standard)
@@ -40,5 +48,6 @@ package "FOTAService" {
 ServiceUUID -[hidden]down- BinaryStreamCharacteristic
 BinaryStreamCharacteristic -[hidden]down- FOTAControlCharacteristic
 FOTAControlCharacteristic -[hidden]down- FOTAStatusCharacteristic
-FOTAStatusCharacteristic -[hidden]down- FirmwareRevisionStringCharacteristic
+FOTAStatusCharacteristic -[hidden]down- FOTAVersionStringCharacteristic
+FOTAVersionStringCharacteristic -[hidden]down- FirmwareRevisionStringCharacteristic
 @enduml
