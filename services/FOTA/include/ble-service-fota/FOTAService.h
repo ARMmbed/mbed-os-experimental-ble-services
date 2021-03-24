@@ -45,8 +45,8 @@
  *
  * Typically MTU - 3 bytes for overhead
  */
-#ifndef MBED_CONF_CORDIO_DESIRED_ATT_MTU
-#define BLE_FOTA_SERVICE_MAX_DATA_LEN MBED_CONF_BLE_FOTA_SERVICE_BUFFER_SIZE
+#if defined(MBED_CONF_BLE_SERVICE_FOTA_BSC_BUFFER_SIZE)
+#define BLE_FOTA_SERVICE_MAX_DATA_LEN MBED_CONF_BLE_SERVICE_FOTA_BSC_BUFFER_SIZE
 #else
 #define BLE_FOTA_SERVICE_MAX_DATA_LEN (MBED_CONF_CORDIO_DESIRED_ATT_MTU - 3)
 #endif
@@ -58,7 +58,6 @@ namespace uuids {
 namespace FOTAService {
 
     extern const char BaseUUID[];
-    extern const char OffsetUUID[];
     extern const char BinaryStreamUUID[];
     extern const char ControlUUID[];
     extern const char StatusUUID[];
@@ -215,7 +214,7 @@ public:
      * @note this may be used by the FOTAService::EventHandler to queue events for
      * deferred processing.
      */
-    const events::EventQueue&& get_event_queue() const {
+    events::EventQueue& get_event_queue() {
         return _event_queue;
     }
 

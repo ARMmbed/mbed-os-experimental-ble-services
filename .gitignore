@@ -43,3 +43,9 @@ mbed_config.h
 *.pyc
 BUILD/
 cmake_build/
+tests/TESTS/LinkLoss/device/mbed-os
+tests/TESTS/LinkLoss/device/LinkLoss
+tests/TESTS/LinkLoss/device/mbed-os
+tests/TESTS/LinkLoss/device/LinkLoss
+tests/TESTS/LinkLoss/device/mbed-os
+tests/TESTS/LinkLoss/device/LinkLoss

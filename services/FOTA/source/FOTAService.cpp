@@ -19,7 +19,7 @@
 
 #if BLE_FEATURE_GATT_SERVER
 
-#include "FOTAService.h"
+#include "ble-service-fota/FOTAService.h"
 
 #include "ble/gatt/GattCharacteristic.h"
 
@@ -139,7 +139,7 @@ void FOTAService::on_control_write_request(
 
     /* First check if we're in sync (unless it's a STOP command) */
     if(_sync_lost && (write_request->data[0] != FOTA_STOP)) {
-        write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC;
+        write_request->authorizationReply = (GattAuthCallbackReply_t)AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC;
         notify_sync_lost();
         return;
     }
