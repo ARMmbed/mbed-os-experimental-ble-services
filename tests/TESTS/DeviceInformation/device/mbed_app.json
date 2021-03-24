@@ -1,0 +1,13 @@
+{
+    "target_overrides": {
+        "*": {
+            "platform.stdio-baud-rate": 115200
+        },
+        "NRF52840_DK": {
+            "target.features_add": ["BLE"]
+        },
+        "DISCO_L496AG": {
+            "target.features_add": ["BLE"]
+        }
+    }
+}
