@@ -97,7 +97,7 @@ ble_error_t DeviceInformationService::add_service(
     if (cert_data_list && cert_data_list->data) {
         param_chars[param_index++] = new GattCharacteristic(
             GattCharacteristic::UUID_IEEE_REGULATORY_CERTIFICATION_DATA_LIST_CHAR,
-            cert_data_list->data,
+            (uint8_t*)cert_data_list->data,
             cert_data_list->data[0] + 1, /* Min length */
             cert_data_list->data[0] + 1, /* Max length */
             GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
