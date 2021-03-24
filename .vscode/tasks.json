@@ -6,7 +6,7 @@
         {
             "label": "Bootstrap",
             "type": "shell",
-            "command": "./bootstrap.sh",
+            "command": "./scripts/bootstrap.sh",
             "problemMatcher": []
         }
     ]

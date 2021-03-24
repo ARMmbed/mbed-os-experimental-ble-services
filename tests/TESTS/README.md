@@ -28,11 +28,11 @@ LinkLoss/
      └─── test_link_loss.py
 ```
 
-The ~mbed-os and ~LinkLoss files are symbolic links for the Mbed OS clone in the parent tests directory, and the Link Loss Service (LLS) files in the services subdirectory of the root Experimental BLE Services repository, respectively.
+The ~mbed-os and ~LinkLoss files are symbolic links to the Mbed OS clone in the dependencies folder and the Link Loss Service (LLS) files, respectively.
 These are added during the bootstrap process using the `symlink` command, a platform agnostic method to create symbolic links.
 The general syntax is:
 
-```
+```shell
 symlink <source> <destination>
 ```
 
@@ -43,7 +43,7 @@ To test asynchronous code, we need to modify the test runner so that it uses asy
 Luckily, we can do this with the help of the `pytest.mark.asyncio` decorator included in the **pytest-asyncio** plugin for pytest. For example, the code below tests the initial value of the alert level in the Link Loss Service (LLS) by reading the alert level characteristic and comparing the result to the constant `NO_ALERT`. 
 The parameters `board` and `client` are test fixtures and are discussed in detail in the next section.
 
-```
+```python
 @pytest.mark.asyncio
 async def test_read_alert_level_initial_value(board, client):
     assert await client.read_gatt_char(UUID_ALERT_LEVEL_CHAR) == NO_ALERT
@@ -55,7 +55,7 @@ These are test fixtures that allocate and release `SerialDevice` and `BleakClien
 The code block below shows their definitions in the case of the LinkLoss test suite.
 The string passed to the allocate functions should be equal to the name of the device under test (DUT).
 
-```
+```python
 @pytest.fixture(scope="function")
 def board(board_allocator: BoardAllocator):
     board = board_allocator.allocate('LinkLoss')
@@ -71,26 +71,33 @@ async def client(client_allocator: ClientAllocator):
 ```
 
 ### Building and running integration tests
-1. Run the bootstrap process: `../../bootstrap.sh`
+1. Run the bootstrap process and activate the Python virtual environment: 
+   
+   ```shell
+   ../../scripts/bootstrap.sh
+   source ../../scripts/activate.sh
+   ```
 
 1. Enter the device folder and compile and flash the BLE application onto the board:
 
-   ```
+   ```shell
    cd <service>/device
    mbed compile -t <toolchain> -m <target> -f 
    ```
 
    where, `<service>` is the name of the test suite, e.g. `LinkLoss`
 
-1. Run the tests by passing the host folder to pytest:
+1. Run the tests by passing the host folder to pytest inside the `TESTS` folder:
 
-   ```
+   ```shell
+   cd ../..
    python -m pytest <service>/host
    ```
 
    On some platforms, it is required to specify the target and port in additional arguments:
 
-   ```
+   ```shell
+   cd ../..
    python -m pytest <service>/host --platforms=<target> --serial_port=<port>
    ```
 

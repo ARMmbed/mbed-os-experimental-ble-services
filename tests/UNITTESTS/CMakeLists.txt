@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.0.2)
 
-# add all subdirectories
+set(MBED_PATH ${CMAKE_CURRENT_SOURCE_DIR}/mbed-os CACHE INTERNAL "")
+set(SERVICES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../services CACHE INTERNAL "")
 
-file(GLOB subdirectories RELATIVE ${CMAKE_CURRENT_LIST_DIR} *)
+project(unittests)
 
-foreach(dir ${subdirectories})
-    if(IS_DIRECTORY  ${CMAKE_CURRENT_LIST_DIR}/${dir})
-        add_subdirectory(${dir})
-    endif()
-endforeach()
+enable_testing()
+
+add_subdirectory(${MBED_PATH}/UNITTESTS)
+
+add_subdirectory(Template)
+add_subdirectory(LinkLoss)

@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enter repository root
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Repository root
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
 
 # Test if script is running on windows
 windows() {
@@ -23,7 +23,7 @@ windows() {
 
 # Activate virtual environment
 if windows; then
-  source tests/TESTS/venv/Scripts/activate
+  source "$ROOT"/tests/TESTS/venv/Scripts/activate
 else
-  source tests/TESTS/venv/bin/activate
+  source "$ROOT"/tests/TESTS/venv/bin/activate
 fi
