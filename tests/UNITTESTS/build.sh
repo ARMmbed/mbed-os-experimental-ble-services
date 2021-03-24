@@ -13,8 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Reload .bashrc settings
-source ~/.bashrc
+set -e
+
+# Set wd to script location
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Activate virtual environment
-source scripts/activate.sh
+source ../../scripts/activate.sh
+
+# Build unit tests
+cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
+cmake --build cmake_build
+
+# Deactivate virtual environment
+deactivate
