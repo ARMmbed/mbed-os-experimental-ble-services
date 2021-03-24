@@ -67,7 +67,7 @@ public:
          *
          * @Attention Pointer must be valid and first byte must be equal to the size of the data
          * (one byte less than size of the buffer). */
-        uint8_t *data;
+        const uint8_t *data;
     };
 
 public:
