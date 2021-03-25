@@ -209,7 +209,7 @@ void FOTAService::on_bsc_written(mbed::Span<const uint8_t> data) {
 
     if(_eh) {
         /* The EventHandler implementation may notify status as appropriate in this call */
-        result = _eh->on_binary_stream_written(*this, data);
+        result = _eh->on_binary_stream_written(*this, data.subspan(1));
     }
 
     if(result == FOTA_STATUS_OK) {
