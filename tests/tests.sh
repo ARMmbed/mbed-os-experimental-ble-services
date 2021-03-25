@@ -13,3 +13,10 @@ mbed compile -t GCC_ARM -m NRF52840_DK
 mbedtools compile -t GCC_ARM -m NRF52840_DK
 mbed compile -t GCC_ARM -m DISCO_L496AG
 mbedtools compile -t GCC_ARM -m DISCO_L496AG
+
+# FOTA Service builds
+cd TESTS/FOTA/device
+mbed compile -t GCC_ARM -m NRF52840_DK
+mbedtools compile -t GCC_ARM -m NRF52840_DK
+mbed compile -t GCC_ARM -m DISCO_L496AG
+mbedtools compile -t GCC_ARM -m DISCO_L496AG

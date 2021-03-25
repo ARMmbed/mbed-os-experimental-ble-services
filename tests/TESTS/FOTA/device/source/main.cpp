@@ -164,7 +164,7 @@ private:
        /* Write data to the UART for the host test to check */
         printf("bsc written: ");
         for(int i = 0; i < buffer.size(); i++) {
-            printf("%X", buffer[i]);
+            printf("%02X", buffer[i]);
         }
         printf("\r\n");
         return FOTAService::FOTA_STATUS_OK;
