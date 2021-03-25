@@ -23,7 +23,7 @@
 
 #include "ble/gatt/GattCharacteristic.h"
 
-#include "mbed_trace.h"
+#include "mbed-trace/mbed_trace.h"
 
 #include "platform/mbed_assert.h"
 #include "platform/ScopedLock.h"
@@ -137,9 +137,25 @@ void FOTAService::reset(void) {
 void FOTAService::on_control_write_request(
         GattWriteAuthCallbackParams *write_request) {
 
-    /* First check if we're in sync (unless it's a STOP command) */
+    /* Check if there's an ongoing FOTA session. Reject COMMIT and STOP if no session */
+    if(!_fota_in_session) {
+        if((write_request->data[0] == FOTA_COMMIT) || (write_request->data[0] == FOTA_STOP)) {
+            write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_WRITE_REQUEST_REJECTED;
+            return;
+        }
+    }
+
+    /* Check if there's not an ongoing FOTA session. Reject START if in session */
+    if(_fota_in_session) {
+        if(write_request->data[0] == FOTA_START) {
+            write_request->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_WRITE_REQUEST_REJECTED;
+            return;
+        }
+    }
+
+    /* Check if we're in sync (unless it's a STOP command) */
     if(_sync_lost && (write_request->data[0] != FOTA_STOP)) {
-        write_request->authorizationReply = (GattAuthCallbackReply_t)AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC;
+        write_request->authorizationReply = (GattAuthCallbackReply_t) AUTH_CALLBACK_REPLY_ATTERR_OUT_OF_SYNC;
         notify_sync_lost();
         return;
     }
@@ -180,7 +196,7 @@ void FOTAService::on_bsc_written(mbed::Span<const uint8_t> data) {
     }
 
     /* Now check the fragment ID */
-    if(data[0] != (_fragment_id + 1)) {
+    if(data[0] != (_fragment_id)) {
         /* Issue SYNC_LOST notification */
         _sync_lost = true;
         notify_sync_lost();

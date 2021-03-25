@@ -34,7 +34,8 @@ def platforms(request):
     else:
         return [
             'DISCO_L475VG_IOT01A',
-            'NRF52840_DK'
+            'NRF52840_DK',
+            'NRF52_DK'
         ]
 
 
