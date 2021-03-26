@@ -1,0 +1,16 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage[bitheight=6ex]{bytefield}
+\newcommand{\code}{\texttt}
+\begin{document}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{8}
+    \bitheader{0,7} \\
+    \wordbox{1}{\code{XON/XOFF}} \\
+    \wordbox{1}{Last Received Fragment ID}\\
+  \end{bytefield}
+  \label{fig:packet-format}
+\end{figure}
+\end{document}
