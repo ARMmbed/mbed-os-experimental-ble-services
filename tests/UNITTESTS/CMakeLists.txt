@@ -13,3 +13,4 @@ add_subdirectory(${MBED_PATH}/UNITTESTS)
 
 add_subdirectory(Template)
 add_subdirectory(LinkLoss)
+add_subdirectory(FOTA)
