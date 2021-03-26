@@ -1,0 +1,12 @@
+@startuml
+skinparam ParticipantPadding 40
+skinparam BoxPadding 10
+
+box "FOTA Target" #White
+participant FOTAService as fotasvc
+end box
+participant FOTAClient as fotaclient
+
+fotaclient -> fotasvc : Write BSC
+fotasvc -> fotaclient : Status Notification: NO_FOTA_SESSION
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+skinparam ParticipantPadding 40
+skinparam BoxPadding 10
+
+box "FOTA Target" #White
+participant Application as app
+participant EventHandler as eh
+participant FOTAService as fotasvc
+end box
+participant FOTAClient as fotaclient
+
+fotaclient -> fotasvc : Write BSC (fragment ID = N)
+fotasvc -> fotasvc: check fragment ID = N
+fotasvc -> eh: on_bsc_written(data)
+eh -> app : Buffer data
+app -> eh: Buffer threshold reached
+eh -> fotasvc: return Status XOFF
+fotasvc -> fotaclient : Status Notification: XOFF
+app -> app : Process buffer
+fotaclient -> fotasvc: Write BSC (fragment ID = N+1)
+fotasvc -> fotasvc : Ignore BSC Write
+fotasvc -> fotaclient: Status Notification: XOFF
+app -> app : Process buffer
+app -> fotasvc : Write Status: XON
+fotasvc -> fotaclient: Status Notification: XON
+fotaclient -> fotasvc: Write BSC (fragment ID = N+1)
+@enduml

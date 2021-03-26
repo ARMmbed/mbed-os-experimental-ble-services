@@ -1,0 +1,53 @@
+@startuml
+skinparam componentStyle rectangle
+package "FOTAService" {
+   component ServiceUUID [
+      ServiceUUID: 53880000-65fd-4651-ba8e-91527f06c887
+   ]
+   package "BinaryStreamCharacteristic" {
+      component BSC_PROPS [
+         UUID: 53880001-65fd-4651-ba8e-91527f06c887
+         Properties: //Write w/o Response//
+         Length: 1 to MTU, variable
+         **Mandatory**
+      ]
+   }
+   package "FOTAControlCharacteristic" {
+      component FOTACC_PROPS [
+         UUID: 53880002-65fd-4651-ba8e-91527f06c887
+         Properties: //Write//
+         Length: 1 to 16, variable
+         **Mandatory**
+      ]
+   }
+   package "FOTAStatusCharacteristic" {
+      component FOTASC_PROPS [
+         UUID: 53880003-65fd-4651-ba8e-91527f06c887
+         Properties: //Read, Notify//
+         Length: 1 to 16, variable
+         **Mandatory**
+      ]
+   }
+   package "FOTAVersionStringCharacteristic" {
+      component FOTAVSC_PROPS [
+         UUID: 53880004-65fd-4651-ba8e-91527f06c887
+         Properties: //Read//
+         Length: variable (depends on length of version string)
+         **Mandatory**
+      ]
+   }
+   package "FirmwareRevisionStringCharacteristic" {
+      component FRSC_PROPS [
+         UUID: 0x2A26 (standard)
+         Properties: //Read//
+         Length: variable (depends on length of revision string)
+         **Optional***
+      ]
+}
+
+ServiceUUID -[hidden]down- BinaryStreamCharacteristic
+BinaryStreamCharacteristic -[hidden]down- FOTAControlCharacteristic
+FOTAControlCharacteristic -[hidden]down- FOTAStatusCharacteristic
+FOTAStatusCharacteristic -[hidden]down- FOTAVersionStringCharacteristic
+FOTAVersionStringCharacteristic -[hidden]down- FirmwareRevisionStringCharacteristic
+@enduml
