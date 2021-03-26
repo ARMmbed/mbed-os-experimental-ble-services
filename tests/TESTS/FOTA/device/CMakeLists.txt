@@ -19,6 +19,12 @@ mbed_configure_app_target(${APP_TARGET})
 
 project(${APP_TARGET})
 
+target_include_directories(${APP_TARGET}
+    PRIVATE
+        .
+)
+
+
 target_sources(${APP_TARGET}
     PRIVATE
         source/main.cpp

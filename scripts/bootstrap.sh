@@ -32,6 +32,12 @@ fi
 
 # Add symlinks
 symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/UNITTESTS/mbed-os
+
+symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/FOTA/device/mbed-os
+symlink "$ROOT"/common               "$ROOT"/tests/TESTS/FOTA/device/common
+symlink "$ROOT"/descriptors          "$ROOT"/tests/TESTS/FOTA/device/descriptors
+symlink "$ROOT"/services/FOTA        "$ROOT"/tests/TESTS/FOTA/device/FOTA
+
 symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/LinkLoss/device/mbed-os
 symlink "$ROOT"/services/LinkLoss "$ROOT"/tests/TESTS/LinkLoss/device/LinkLoss
 
