@@ -1,0 +1,17 @@
+{
+    "name": "ble-service-fota",
+    "config": {
+        "bsc-buffer-size": {
+            "help": "Maximum length of binary stream characteristic in bytes",
+            "value": null
+        },
+        "control-buffer-size": {
+            "help": "Maximum length of control characteristic in bytes",
+            "value": 8
+        },
+        "status-buffer-size": {
+            "help": "Maximum length of status characteristic in bytes",
+            "value": 8
+        }
+    }
+}
