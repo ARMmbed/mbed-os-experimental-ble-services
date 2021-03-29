@@ -21,6 +21,9 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 # Activate virtual environment
 source ../../scripts/activate.sh
 
+# Restore wd
+cd tests/UNITTESTS
+
 # Run unit tests
 (cd cmake_build; ctest -V)
 (cd cmake_build; ctest -D ExperimentalMemCheck)

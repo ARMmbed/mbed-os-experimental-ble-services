@@ -13,53 +13,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Repository root
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/.. || exit
+# Enter repository root
+cd "$( dirname "${BASH_SOURCE[0]}" )"/..
 
 # Load symlink script
-source "$ROOT"/scripts/symlink.sh
+source scripts/symlink.sh
 
 # Clone mbed-os
-if [ -d "$ROOT/dependencies/mbed-os" ]
+if [ -d "dependencies/mbed-os" ]
 then
     echo "Using existing mbed-os"
 else
     # git clone https://github.com/ARMmbed/mbed-os.git
     # Use feature branch until merged to master
-    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature_unittest_refactor "$ROOT"/dependencies/mbed-os
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git -b feature_unittest_refactor dependencies/mbed-os
 fi
 
 # Add symlinks
-symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/DeviceInformation/device/mbed-os
-symlink "$ROOT"/services/DeviceInformation "$ROOT"/tests/TESTS/DeviceInformation/device/DeviceInformation
+symlink dependencies/mbed-os       tests/UNITTESTS/mbed-os
 
-symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/UNITTESTS/mbed-os
-symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/LinkLoss/device/mbed-os
-symlink "$ROOT"/services/LinkLoss "$ROOT"/tests/TESTS/LinkLoss/device/LinkLoss
+symlink dependencies/mbed-os       tests/TESTS/LinkLoss/device/mbed-os
+symlink services/LinkLoss          tests/TESTS/LinkLoss/device/LinkLoss
+
+symlink dependencies/mbed-os       tests/TESTS/DeviceInformation/device/mbed-os
+symlink services/DeviceInformation tests/TESTS/DeviceInformation/device/DeviceInformation
 
 # Create virtual environment
-if [ -d "$ROOT/tests/TESTS/venv" ]
+if [ -d "tests/TESTS/venv" ]
 then
   echo "Using existing virtual environment"
 else
-  mkdir "$ROOT"/tests/TESTS/venv
+  mkdir tests/TESTS/venv
   # On Windows, the Python 3 executable is called 'python'
   if windows; then
-    python  -m virtualenv "$ROOT"/tests/TESTS/venv
+    python  -m virtualenv tests/TESTS/venv
   else
-    python3 -m virtualenv "$ROOT"/tests/TESTS/venv
+    python3 -m virtualenv tests/TESTS/venv
   fi
 fi
 
 # Activate virtual environment
-source "$ROOT"/scripts/activate.sh
+source scripts/activate.sh
 
 # Install mbed-os requirements
-pip install -r "$ROOT"/dependencies/mbed-os/requirements.txt
+pip install -r dependencies/mbed-os/requirements.txt
 
 # Install testing requirements
-pip install -r "$ROOT"/tests/TESTS/requirements.txt
+pip install -r tests/TESTS/requirements.txt
 
 # Install cli and tools
 pip install --upgrade mbed-cli mbed-tools

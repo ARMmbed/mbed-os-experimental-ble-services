@@ -30,6 +30,9 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 # Activate virtual environment
 source ../../scripts/activate.sh
 
+# Restore wd
+cd tests/TESTS
+
 # Parse options
 while getopts "s:t:m:h" opt
 do

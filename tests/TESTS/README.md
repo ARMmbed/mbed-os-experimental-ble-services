@@ -36,6 +36,8 @@ The general syntax is:
 symlink <source> <destination>
 ```
 
+On Windows, you can run this in [Git BASH](https://gitforwindows.org/) with admin privileges.
+
 ## Integration testing with pytest
 The [pytest](https://docs.pytest.org/en/stable/) framework is used to write the tests. 
 However, bleak makes extensive use of [coroutine functions](https://docs.python.org/3/library/asyncio-task.html#id1), which are not natively supported by pytest.
