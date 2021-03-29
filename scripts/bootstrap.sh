@@ -31,6 +31,9 @@ else
 fi
 
 # Add symlinks
+symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/DeviceInformation/device/mbed-os
+symlink "$ROOT"/services/DeviceInformation "$ROOT"/tests/TESTS/DeviceInformation/device/DeviceInformation
+
 symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/UNITTESTS/mbed-os
 symlink "$ROOT"/dependencies/mbed-os "$ROOT"/tests/TESTS/LinkLoss/device/mbed-os
 symlink "$ROOT"/services/LinkLoss "$ROOT"/tests/TESTS/LinkLoss/device/LinkLoss
@@ -60,3 +63,5 @@ pip install -r "$ROOT"/tests/TESTS/requirements.txt
 
 # Install cli and tools
 pip install --upgrade mbed-cli mbed-tools
+
+echo "Services repository bootstrap complete"
