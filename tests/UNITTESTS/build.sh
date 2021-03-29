@@ -21,6 +21,9 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 # Activate virtual environment
 source ../../scripts/activate.sh
 
+# Restore wd
+cd tests/UNITTESTS
+
 # Build unit tests
 cmake -S . -B cmake_build -GNinja -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE:STRING=xml
 cmake --build cmake_build
