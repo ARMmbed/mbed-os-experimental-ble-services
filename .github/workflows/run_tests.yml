@@ -32,7 +32,7 @@ jobs:
           uses: actions/upload-artifact@v2
           with:
             name: gcovr coverage result
-            path: tests/coverage.html
+            path: tests/UNITTESTS/coverage.html
 
   integration-tests:
     name: Integration tests
