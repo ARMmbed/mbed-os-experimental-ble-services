@@ -34,4 +34,12 @@ target_link_libraries(${TEST_NAME}
         gmock_main
 )
 
+target_compile_definitions(${TEST_NAME}
+    PUBLIC
+        # CMake does not generate config. options;
+        # if your service defines config. parameters in an mbed_lib.json,
+        # you must also define them here
+        CONFIGURATION_MACRO_NAME=1
+)
+
 add_test(NAME "${TEST_NAME}" COMMAND ${TEST_NAME})
