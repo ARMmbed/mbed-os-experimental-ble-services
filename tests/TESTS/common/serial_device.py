@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 import logging
 import re
 import threading
@@ -81,10 +80,8 @@ class SerialDevice(Device):
         self.ot.join()
 
     def _ip_thread(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         while self.run:
-            line = loop.run_until_complete(self.serial.readline_async())
+            line = self.serial.readline()
             if line:
                 plain_line = strip_escape(line)
                 # Testapp uses \r to print characters to the same line, strip those and return only the last part
@@ -105,15 +102,13 @@ class SerialDevice(Device):
                 pass
 
     def _op_thread(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         while self.run:
             try:
                 line = self.oq.get(timeout=1)
                 if line:
                     logger.info('-->|{}| {}'.format(self.name, line.strip()))
                     data = line + '\n'
-                    loop.run_until_complete(self.serial.write_async(data.encode('utf8')))
+                    self.serial.write(data.encode('utf8'))
                 else:
                     logger.debug('Nothing sent')
             except Empty:
