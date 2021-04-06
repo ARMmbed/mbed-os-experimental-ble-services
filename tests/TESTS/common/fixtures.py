@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import mbed_lstools
+import platform
 import logging
 import pytest
 
@@ -160,7 +161,7 @@ class ClientAllocator:
                     while attempts > 0:
                         try:
                             connected = await self.client.connect()
-                            if connected is True:
+                            if connected:
                                 return self.client
                         except BleakError:
                             pass
@@ -170,12 +171,12 @@ class ClientAllocator:
 
     async def release(self, client: BleakClient) -> None:
         if self.client == client and self.client is not None:
-            if await client.is_connected():
+            if self.client.is_connected:
                 attempts = 5
                 while attempts > 0:
                     try:
-                        disconnected = await client.disconnect()
-                        if disconnected is True:
+                        disconnected = await self.client.disconnect()
+                        if disconnected:
                             self.client = None
                             return
                     except BleakError:
