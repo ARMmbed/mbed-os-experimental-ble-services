@@ -127,6 +127,10 @@ void FOTAService::notify_status(mbed::Span<const uint8_t> buf) {
     _ble.gattServer().write(_status_char.getValueHandle(), buf.data(), buf.size());
 }
 
+void FOTAService::notify_status(uint8_t code) {
+    notify_status(mbed::make_const_Span(&code, 1));
+}
+
 void FOTAService::reset(void) {
     _fota_in_session = false;
     _fragment_id = 0;
