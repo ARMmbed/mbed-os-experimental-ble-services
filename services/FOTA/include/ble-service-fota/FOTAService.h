@@ -241,6 +241,12 @@ public:
     void notify_status(mbed::Span<const uint8_t> buf);
 
     /**
+     * Simplified Notify Status method, using only a single status code input
+     * @param[in] code Status code to notify the FOTA client with
+     */
+    void notify_status(uint8_t code);
+
+    /**
      * Start/enter a FOTA session
      */
     void start_fota_session(void);
@@ -249,6 +255,13 @@ public:
      * Stop/exit a FOTA session
      */
     void stop_fota_session(void);
+
+    /**
+     * Get FOTA session status
+     */
+    bool is_fota_in_session() const {
+        return _fota_in_session;
+    }
 
 protected:
 
