@@ -201,6 +201,7 @@ void FOTAService::on_bsc_written(mbed::Span<const uint8_t> data) {
 
     /* Now check the fragment ID */
     if(data[0] != (_fragment_id)) {
+        tr_warn("received fragment id %d, expected %d", data[0], _fragment_id);
         /* Issue SYNC_LOST notification */
         _sync_lost = true;
         notify_sync_lost();
