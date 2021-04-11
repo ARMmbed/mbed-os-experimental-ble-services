@@ -185,6 +185,7 @@ class ClientAllocator:
                 if platform.system() == "Darwin":
                     await client.connect()
                     await self.release(client)
+            self.client = None
 
 
 @pytest.fixture(scope="session")
