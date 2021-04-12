@@ -13,17 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
-from time import sleep
 
-from serial import Serial, SerialException
+from time      import sleep
+from aioserial import AioSerial, SerialException
 
 log = logging.getLogger(__name__)
 
 
 class SerialConnection:
     def __init__(self, port=None, baudrate=9600, timeout=1, inter_byte_delay=None):
-        self.ser = Serial(port, baudrate, timeout=timeout)
+        self.ser = AioSerial(port, baudrate, timeout=timeout)
         self.inter_byte_delay = inter_byte_delay
 
     def open(self):
@@ -45,6 +46,18 @@ class SerialConnection:
             log.error('Serial connection read error: {}'.format(se))
             return None
 
+    async def readline_async(self):
+        """
+        Asynchronously read line from serial port
+        :return: One line from serial stream
+        """
+        try:
+            output = await self.ser.readline_async()
+            return output
+        except asyncio.CancelledError:
+            log.error(f'readline_async() future cancelled')
+            return None
+
     def write(self, data):
         """
         Write data to serial port
@@ -59,6 +72,21 @@ class SerialConnection:
                 self.ser.write(data)
         except SerialException as se:
             log.error('Serial connection write error: {}'.format(se))
+
+    async def write_async(self, data):
+        """
+        Asynchronously write data to serial port
+        :param data: Data to send
+        """
+        try:
+            if self.inter_byte_delay:
+                for byte in data:
+                    await self.ser.write_async(bytes([byte]))
+                    await asyncio.sleep(self.inter_byte_delay)
+            else:
+                await self.ser.write_async(data)
+        except asyncio.CancelledError:
+            log.error(f'write_async() future cancelled')
 
     def send_break(self, duration=0.25):
         """

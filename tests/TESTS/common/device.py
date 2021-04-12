@@ -13,12 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
 import queue
-from time import sleep, time
+import concurrent.futures
+
+from time   import time
 from typing import Optional
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Device:
@@ -30,8 +33,14 @@ class Device:
             self.name = str(hex(id(self)))
         else:
             self.name = name
+        self._wait_for_output_executor: concurrent.futures.ThreadPoolExecutor = \
+            concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self._cancel_wait_for_output_executor: concurrent.futures.ThreadPoolExecutor = \
+            concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self._wait_for_output_lock: asyncio.Lock = asyncio.Lock()
 
-    def send(self, command, expected_output=None, wait_before_read=None, wait_for_response=10, assert_output=True):
+    async def send(self, command, expected_output=None, wait_before_read=None, wait_for_response=10,
+                   assert_output=True):
         """
         Send command for client
         :param command: Command
@@ -41,15 +50,15 @@ class Device:
         :param assert_output: Assert the fail situations to end the test run
         :return: If there's expected output then the response line is returned
         """
-        log.debug('{}: Sending command to client: "{}"'.format(self.name, command))
-        self.flush(0)
+        logger.debug('{}: Sending command to client: "{}"'.format(self.name, command))
+        await self.flush(0)
         self._write(command)
         if expected_output is not None:
             if wait_before_read is not None:
-                sleep(wait_before_read)
-            return self.wait_for_output(expected_output, wait_for_response, assert_output)
+                await asyncio.sleep(wait_before_read)
+            return await self.wait_for_output(expected_output, wait_for_response, assert_output)
 
-    def flush(self, timeout: float = 0) -> [str]:
+    async def flush(self, timeout: float = 0) -> [str]:
         """
         Flush the lines in the input queue
         :param timeout: The timeout before flushing starts
@@ -57,7 +66,7 @@ class Device:
         :return: The lines removed from the input queue
         :rtype: list of str
         """
-        sleep(timeout)
+        await asyncio.sleep(timeout)
         lines = []
         while True:
             try:
@@ -65,7 +74,7 @@ class Device:
             except queue.Empty:
                 return lines
 
-    def wait_for_output(self, search: str, timeout: float = 10, assert_timeout: bool = True) -> [str]:
+    async def wait_for_output(self, search: str, timeout: float = 10, assert_timeout: bool = True) -> [str]:
         """
         Wait for expected output response
         :param search: Expected response string
@@ -77,6 +86,16 @@ class Device:
         :return: Line received before a match
         :rtype: list of str
         """
+        loop = asyncio.get_running_loop()
+        async with self._wait_for_output_lock:
+            try:
+                return await loop.run_in_executor(
+                    self._wait_for_output_executor, self._wait_for_output, search, timeout, assert_timeout)
+            except asyncio.CancelledError:
+                await asyncio.shield(self._cancel_wait_for_output)
+                raise
+
+    def _wait_for_output(self, search: str, timeout: float = 10, assert_timeout: bool = True) -> [str]:
         lines = []
         start = time()
         now = 0
@@ -96,14 +115,18 @@ class Device:
                 now = time()
                 if now - start >= timeout:
                     if assert_timeout:
-                        log.error(timeout_error_msg)
+                        logger.error(timeout_error_msg)
                         assert False, timeout_error_msg
                     else:
-                        log.warning(timeout_error_msg)
+                        logger.warning(timeout_error_msg)
                         return []
                 if now - last > 1:
-                    log.info('{}: Waiting for "{}" string... Timeout in {:.0f} s'.format(self.name, search,
-                                                                                         abs(now - start - timeout)))
+                    logger.info('{}: Waiting for "{}" string... Timeout in {:.0f} s'.format(self.name, search,
+                                                                                            abs(now - start - timeout)))
+
+    async def _cancel_wait_for_output(self):
+        if not hasattr(self, 'dummy'):
+            return
 
     def _write(self, data):
         self.oq.put(data)

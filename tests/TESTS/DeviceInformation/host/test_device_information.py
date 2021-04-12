@@ -14,13 +14,13 @@
 # limitations under the License
 
 import pytest
-import platform
 
 from common.fixtures import BoardAllocator, ClientAllocator
 
+
 @pytest.fixture(scope="function")
-def board(board_allocator: BoardAllocator):
-    board = board_allocator.allocate('DeviceInformation')
+async def board(board_allocator: BoardAllocator):
+    board = await board_allocator.allocate('DeviceInformation')
     yield board
     board_allocator.release(board)
 
@@ -60,6 +60,3 @@ async def test_device_information_service_values(board, client):
         uuid, expected_value = char
         char_value = await client.read_gatt_char(uuid)
         assert char_value == expected_value
-
-
-
