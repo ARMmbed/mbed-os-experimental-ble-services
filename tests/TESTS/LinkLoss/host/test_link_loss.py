@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
+import asyncio
 import pytest
 
 from common.fixtures import BoardAllocator, ClientAllocator
+from bleak           import BleakClient
 from bleak.uuids     import uuid16_dict
 
 uuid16_dict = {v: k for k, v in uuid16_dict.items()}
@@ -76,8 +78,19 @@ async def test_alert_mechanism(board, client, alert_level, alert_message):
 @pytest.mark.parametrize(
     "alert_level,alert_message", [(MILD_ALERT, "Mild Alert!"), (HIGH_ALERT, "High Alert!")])
 async def test_disconnection_reconnection(board, client, alert_level, alert_message):
+
+    def disconnected_callback(c: BleakClient):
+        disconnection_complete_event.set()
+
+    async def waiter(event: asyncio.Event):
+        await event.wait()
+
+    client.set_disconnected_callback(disconnected_callback)
+    disconnection_complete_event = asyncio.Event()
+    disconnection_complete = asyncio.create_task(waiter(disconnection_complete_event))
     await client.write_gatt_char(UUID_ALERT_LEVEL_CHAR, alert_level)
     await client.write_gatt_char(UUID_DISCONNECTION_REASON_CHAR, CONNECTION_TIMEOUT)
+    await disconnection_complete
     await board.wait_for_output(alert_message, timeout=10)
     await client.connect()
     await board.wait_for_output("Alert ended", timeout=10)
