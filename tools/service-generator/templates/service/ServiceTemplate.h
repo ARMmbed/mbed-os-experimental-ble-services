@@ -77,7 +77,7 @@
 //cog.outl(f'    ~{ spec["service"]["name"] }();\n')
 //cog.outl(f'    void init();\n')
 //cog.outl('protected:\n')
-//cog.outl('    BLE &_ble\n')
+//cog.outl('    BLE &_ble;\n')
 //for c in spec["service"]["characteristics"]:
 //   cog.outl(f'    GattCharacteristic _{ inflection.underscore(c["name"]) }_char;')
 //   cog.outl(f'    { c["type"] } _{ inflection.underscore(c["name"]) };\n')

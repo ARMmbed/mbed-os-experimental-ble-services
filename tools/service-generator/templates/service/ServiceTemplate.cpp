@@ -88,7 +88,7 @@
 //         cog.outl('),')
 //      else:
 //         cog.outl(' |')
-//   cog.outl('        nullptr, 0, false),')
+//   cog.outl(f'        nullptr, 0, { "true" if c["has-variable-length"] else "false" }),')
 //   cog.out(f'    _{ c_name }(0)')
 //   if i != (len(chars) - 1):
 //      cog.outl(',')
@@ -110,7 +110,7 @@
 //   else:
 //      cog.out('\n')
 //cog.outl('    };\n')
-//cog.outl(f'    GattService service(uuids::{ s_name }::BaseUUID, charTable, sizeof(charTable));')
+//cog.outl(f'    GattService service(uuids::{ s_name }::BaseUUID, charTable, (sizeof(charTable))/sizeof(charTable[0]));')
 //]]]
 //[[[end]]]
 
