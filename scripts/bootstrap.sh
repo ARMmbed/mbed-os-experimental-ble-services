@@ -38,6 +38,10 @@ symlink services/LinkLoss          tests/TESTS/LinkLoss/device/LinkLoss
 symlink dependencies/mbed-os       tests/TESTS/DeviceInformation/device/mbed-os
 symlink services/DeviceInformation tests/TESTS/DeviceInformation/device/DeviceInformation
 
+# Create mbed-os.lib for CMake builds
+echo "https://github.com/ARMmbed/mbed-os" > tests/TESTS/LinkLoss/device/mbed-os.lib
+echo "https://github.com/ARMmbed/mbed-os" > tests/TESTS/DeviceInformation/device/mbed-os.lib
+
 # Create virtual environment
 if [ -d "tests/TESTS/venv" ]
 then
