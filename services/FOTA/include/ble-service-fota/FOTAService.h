@@ -267,7 +267,7 @@ protected:
 
     void reset(void);
 
-    void on_control_write_request(GattWriteAuthCallbackParams *write_request);
+    virtual void on_control_write_request(GattWriteAuthCallbackParams *write_request);
 
     /**
      * Internal handler for BSC writes
