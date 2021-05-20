@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#if BLE_FEATURE_GATT_SERVER
-
 #include "ble-service-link-loss/LinkLossService.h"
+
+#if BLE_FEATURE_GATT_SERVER
 
 LinkLossService::LinkLossService(BLE &ble, events::EventQueue &event_queue, ChainableGapEventHandler &chainable_gap_event_handler) :
     _ble(ble),
@@ -89,7 +89,7 @@ void LinkLossService::onConnectionComplete(const ble::ConnectionCompleteEvent &e
 
 void LinkLossService::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
-    AlertLevel level = get_alert_level();
+    AlertLevel level  = get_alert_level();
     if (_alert_handler != nullptr && event.getReason() == ble::disconnection_reason_t::CONNECTION_TIMEOUT &&
         level != AlertLevel::NO_ALERT && !_in_alert) {
         _in_alert = true;

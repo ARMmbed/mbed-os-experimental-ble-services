@@ -18,9 +18,10 @@
 #ifndef LINK_LOSS_SERVICE_H
 #define LINK_LOSS_SERVICE_H
 
+#include "ble/BLE.h"
+
 #if BLE_FEATURE_GATT_SERVER
 
-#include "ble/BLE.h"
 #include "ble/Gap.h"
 #include "events/EventQueue.h"
 #include "ble/gap/ChainableGapEventHandler.h"
