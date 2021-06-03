@@ -1,0 +1,31 @@
+@startuml
+skinparam ParticipantPadding 40
+skinparam BoxPadding 10
+
+box "FOTA Target" #White
+participant Bootloader as bl
+participant Application as app
+participant EventHandler as eh
+participant FOTAService as fotasvc
+end box
+participant FOTAClient as fotaclient
+
+fotaclient -> fotasvc : Write BSC (fragment ID = N+1)
+fotasvc -> fotasvc: check fragment ID = N+1
+fotasvc -> eh: on_bsc_written(data)
+fotaclient -> fotaclient : Firmware transfer complete
+fotaclient -> fotasvc: Write Control: FOTA Commit
+fotasvc -> eh: on_fota_commit()
+eh -> app: Start shutdown
+app -> app: Disconnect BLE\n(reason: POWER OFF, 0x15)
+app -> app: Close files,\nshutdown subsystems, etc.
+app -> app: Device reset
+bl -> bl: Validate FW update candidate\nSUCCESS
+bl -> bl: Install new application
+bl -> app: Start new application
+app -> app: Start BLE
+app -> fotasvc: Write FOTA Status:\nUPDATE_SUCCESS
+fotaclient -> fotasvc: Reconnect
+fotaclient -> fotasvc: Read firmware version\nCheck for increment
+fotaclient -> fotasvc: Read FOTA Status\nSUCCESS
+@enduml

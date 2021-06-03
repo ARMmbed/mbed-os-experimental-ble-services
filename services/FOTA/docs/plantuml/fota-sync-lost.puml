@@ -1,0 +1,25 @@
+@startuml
+skinparam ParticipantPadding 40
+skinparam BoxPadding 10
+
+box "FOTA Target" #White
+participant EventHandler as eh
+participant FOTAService as fotasvc
+end box
+participant FOTAClient as fotaclient
+
+fotaclient -> fotasvc : Write BSC (fragment ID = N)
+fotasvc -> fotasvc: check fragment ID = N
+fotasvc -> eh: on_bsc_written(data)
+fotaclient -> fotaclient : Missed packet!\nWrite BSC (fragment ID = N+1)
+fotaclient -> fotasvc : Write BSC (fragment ID = N+2)
+fotasvc -> fotasvc: check fragment ID = N+1
+fotasvc -> fotaclient : Missed packet!\nStatus Notification: SYNC_LOST, N+1
+fotaclient -> fotasvc : Write BSC (fragment ID = N+3)
+fotasvc -> fotasvc: check fragment ID = N+1
+fotasvc -> fotaclient : Status Notification: SYNC_LOST, N+1
+fotaclient -> fotaclient : Return to packet N+1
+fotaclient -> fotasvc : Write BSC (fragment ID = N+1)
+fotasvc -> fotasvc: check fragment ID = N+1
+fotasvc -> eh: on_bsc_written(data)
+@enduml

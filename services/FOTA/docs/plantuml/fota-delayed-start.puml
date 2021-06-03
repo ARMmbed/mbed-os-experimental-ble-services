@@ -1,0 +1,21 @@
+@startuml
+skinparam ParticipantPadding 40
+skinparam BoxPadding 10
+
+box "FOTA Target" #White
+participant Application as app
+participant EventHandler as eh
+participant FOTAService as fotasvc
+end box
+participant FOTAClient as fotaclient
+
+fotaclient -> fotasvc : Write Control: FOTA Start
+fotasvc -> eh : on_control_written(FOTA Start)
+eh -> app : Start preparing for FOTA
+eh -> fotasvc : return Status XOFF
+fotasvc -> fotaclient : Status Notification: XOFF
+app -> app: Prepare for FOTA\n eg:erase update memory
+app -> fotasvc : Write Status: XON
+fotasvc -> fotaclient : Status Notification: XON
+fotaclient -> fotaclient: Proceed with FOTA session
+@enduml
