@@ -10,7 +10,7 @@ target_include_directories(${TEST_NAME}
     PRIVATE
         .
 	${SERVICES_PATH}/DeviceInformation/include
-        ${MBED_PATH}/connectivity/FEATURE_BLE/include/ble/gap
+        ${mbed-os_SOURCE_DIR}/connectivity/FEATURE_BLE/include/ble/gap
 )
 
 target_sources(${TEST_NAME}
