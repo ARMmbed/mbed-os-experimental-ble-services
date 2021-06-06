@@ -12,3 +12,4 @@ add_subdirectory(mbed-os/UNITTESTS)
 
 add_subdirectory(Template)
 add_subdirectory(LinkLoss)
+add_subdirectory(DeviceInformation)
