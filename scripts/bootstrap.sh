@@ -26,9 +26,7 @@ if [ -d "dependencies/mbed-os" ]
 then
     echo "Using existing mbed-os"
 else
-    # git clone https://github.com/ARMmbed/mbed-os.git
-    # Use feature branch until merged to master
-    git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-ble-rebased dependencies/mbed-os
+    git clone --depth 1 https://github.com/ARMmbed/mbed-os.git dependencies/mbed-os
 fi
 
 # Add symlinks
