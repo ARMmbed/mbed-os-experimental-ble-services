@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
+
 # Enter repository root
 cd "$( dirname "${BASH_SOURCE[0]}" )"/..
 
@@ -26,7 +28,7 @@ then
 else
     # git clone https://github.com/ARMmbed/mbed-os.git
     # Use feature branch until merged to master
-    git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b unittest dependencies/mbed-os
+    git clone --depth 1 https://github.com/paul-szczepanek-arm/mbed-os.git -b cmake-ble-rebased dependencies/mbed-os
 fi
 
 # Add symlinks

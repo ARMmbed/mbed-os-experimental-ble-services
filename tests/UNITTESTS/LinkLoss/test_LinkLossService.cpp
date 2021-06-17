@@ -23,7 +23,7 @@
 #include "ble/gap/ChainableGapEventHandler.h"
 #include "ble-service-link-loss/LinkLossService.h"
 
-#include "Events.h"
+#include "ble/gap/Events.h"
 
 #include "ble_mocks.h"
 #include "events/EventQueue.h"
