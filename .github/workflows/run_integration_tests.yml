@@ -1,2 +1,50 @@
 name: Run integration tests
+on:
+  workflow_dispatch:
+    inputs:
+      SHA:
+        description: 'SHA to run test on'
+        required: true
+jobs:
+  run-integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    container: mbedos/mbed-os-env:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y lavacli curl
+      - name: GitHub Checks
+        uses: LouisBrunner/checks-action@v1.1.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: launch lava job
+          conclusion: ${{ job.status }}
+
+      - name: get lava log
+        env:
+          LAVA_SERVER_TOKEN: ${{ secrets.LAVA_SERVER_TOKEN }}
+          LAVA_SERVER_URL: ${{ secrets.LAVA_SERVER_URL }}
+          USER_TOKEN: ${{ secrets.USER_TOKEN }}
+          REPOSITORY: paul-szczepanek-arm/mbed-os-experimental-ble-services
+        run: |
+          SHA=${{ github.event.inputs.SHA }}"
+          echo "Running job for SHA $SHA"
+          git clone https://github.com/ARMmbed/mbed-os-lava-scripts.git mbed-os-lava-scripts
+          lavacli identities add --uri "$LAVA_SERVER_URL" --username lava-admin --token "$LAVA_SERVER_TOKEN" default
+          cd mbed-os-lava-scripts/jobs
+          LAVA_JOB_NO=`./launch_job.sh services_test.yaml ${REPOSITORY} ${SHA} ${USER_TOKEN}`
+          echo "Running lava job $LAVA_JOB_NO"
+          cd ../..
+          lavacli jobs wait $LAVA_JOB_NO
+          echo "lava job $LAVA_JOB_NO completed"
+          lavacli jobs logs $LAVA_JOB_NO > ble-services-integration-test.log
+          sed -i "s/${{ secrets.USER_TOKEN }}/==USER_TOKEN==" ble-services-integration-test.log
+          sed -i "s/${{ secrets.LAVA_SERVER_TOKEN }}/==LAVA_SERVER_TOKEN==" ble-services-integration-test.log
+      - name: Upload integration test logs
+        uses: actions/upload-artifact@v2.2.3
+        with:
+          name: integration-test-log
+          path: ble-services-integration-test.log
 
