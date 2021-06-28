@@ -34,7 +34,7 @@ jobs:
             name: gcovr coverage result
             path: tests/UNITTESTS/coverage.html
 
-  integration-tests:
+  build-integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
     container: mbedos/mbed-os-env:latest
@@ -45,14 +45,41 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update && apt-get install -y valgrind gcovr
+          apt-get install -y lavacli curl
           pip3 install virtualenv
-
       - name: Boostrap of environment
         run: |
           ./scripts/bootstrap.sh
-
       - name: Build
         run: |
           ./tests/TESTS/build.sh -s DeviceInformation -t GCC_ARM -m NRF52840_DK
           ./tests/TESTS/build.sh -s LinkLoss -t GCC_ARM -m NRF52840_DK
-          ./tests/TESTS/build.sh -s LinkLoss -t GCC_ARM -m DISCO_L496AG
+
+      - name: Uploading Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: DeviceInformation-GCC_ARM-NRF52840_DK-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ./tests/TESTS/DeviceInformation/device/BUILD/NRF52840_DK/GCC_ARM/device.hex
+
+      - name: Uploading Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: LinkLoss-GCC_ARM-NRF52840_DK-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ./tests/TESTS/LinkLoss/device/BUILD/NRF52840_DK/GCC_ARM/device.hex
+
+      - name: Trigger lava workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Run integration tests
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.PAT }}
+          inputs: '{ "SHA": "${{ github.event.pull_request.head.sha || github.sha }}" }'
+
+      - name: set lava job status to pending
+        env:
+          USER_TOKEN: ${{ secrets.USER_TOKEN }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          curl --user ${USER_TOKEN} -H "POST" https://api.github.com/repos/${REPOSITORY}/statuses/${SHA} -d "{\"state\": \"pending\", \"context\": \"lava-test\" }"
+
