@@ -46,12 +46,3 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.PAT }}
           inputs: '{ "SHA": "${{ github.event.pull_request.head.sha || github.sha }}" }'
-
-      - name: set lava job status to pending
-        env:
-          USER_TOKEN: ${{ secrets.USER_TOKEN }}
-          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          curl --user ${USER_TOKEN} -H "POST" https://api.github.com/repos/${REPOSITORY}/statuses/${SHA} -d "{\"state\": \"pending\", \"context\": \"lava-test\" }"
-
