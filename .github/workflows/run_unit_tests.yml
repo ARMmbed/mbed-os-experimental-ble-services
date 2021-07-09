@@ -1,0 +1,36 @@
+name: Run unit tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  unit-tests:
+      name: Unit tests
+      runs-on: ubuntu-latest
+      container: mbedos/mbed-os-env:latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+
+        - name: Install dependencies
+          run: |
+            apt-get update && apt-get install -y valgrind gcovr
+            pip3 install virtualenv
+
+        - name: Boostrap of environment
+          run: |
+            ./scripts/bootstrap.sh
+
+        - name: Build
+          run: ./tests/UNITTESTS/build.sh
+
+        - name: Run
+          run: ./tests/UNITTESTS/run.sh
+
+        - name: Upload coverage result
+          uses: actions/upload-artifact@v2
+          with:
+            name: gcovr coverage result
+            path: tests/UNITTESTS/coverage.html
