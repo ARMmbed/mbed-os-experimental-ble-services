@@ -8,6 +8,12 @@ set(mbed-os_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mbed-os CACHE INTERNAL "")
 project(unittests)
 
 include(CTest)
+add_definitions(-DUNITTEST)
+add_subdirectory(mbed-os/platform/tests/UNITTESTS/doubles)
+add_subdirectory(mbed-os/drivers/tests/UNITTESTS/doubles)
+add_subdirectory(mbed-os/events/tests/UNITTESTS/doubles)
+add_subdirectory(mbed-os/rtos/tests/UNITTESTS/doubles)
+add_subdirectory(mbed-os/hal/tests/UNITTESTS/doubles)
 add_subdirectory(mbed-os/UNITTESTS)
 
 add_subdirectory(Template)
