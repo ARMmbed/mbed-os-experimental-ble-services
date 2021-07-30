@@ -1,0 +1,27 @@
+{
+    "copyright-org": "Embedded Planet, Inc",
+    "service": {
+        "name": "ServiceName",
+        "uuid": "String (custom) or 16-bit int (standardized)",
+        "characteristics": [
+            {
+                "name": "CharacteristicName",
+                "uuid": "String (custom) or 16-bit int (standardized)",
+                "properties": ["BROADCAST",
+                               "READ",
+                               "WRITE_WITHOUT_RESPONSE",
+                               "WRITE",
+                               "NOTIFY",
+                               "INDICATE",
+                               "AUTHENTICATED_SIGNED_WRITES",
+                               "EXTENDED_PROPERTIES"],
+                "type": "typename exactly as written in C/C++",
+                "has-variable-length": true,
+                "length": null,
+                "max-length": null,
+                "security-requirements": "NONE"
+            }
+        ]
+    }
+}
+            
