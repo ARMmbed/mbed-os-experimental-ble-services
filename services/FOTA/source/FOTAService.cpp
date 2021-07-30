@@ -33,11 +33,11 @@
 namespace uuids {
 namespace FOTAService {
 
-     const char BaseUUID[]          = "53880000-65fd-4651-ba8e-91527f06c887";
-     const char BinaryStreamUUID[]  = "53880001-65fd-4651-ba8e-91527f06c887";
-     const char ControlUUID[]       = "53880002-65fd-4651-ba8e-91527f06c887";
-     const char StatusUUID[]        = "53880003-65fd-4651-ba8e-91527f06c887";
-     const char VersionUUID[]       = "53880004-65fd-4651-ba8e-91527f06c887";
+     const char BaseUUID[]          = "64121000-8b71-4181-5f43-08de72451679";
+     const char BinaryStreamUUID[]  = "64122001-8b71-4181-5f43-08de72451679";
+     const char ControlUUID[]       = "64122000-8b71-4181-5f43-08de72451679";
+     const char StatusUUID[]        = "64122002-8b71-4181-5f43-08de72451679";
+     const char VersionUUID[]       = "64122003-8b71-4181-5f43-08de72451679";
 
 }}
 
